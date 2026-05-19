@@ -1,0 +1,63 @@
+name: Release Plugin to npm
+
+on:
+  workflow_dispatch:
+    inputs:
+      npm_tag:
+        description: "npm dist-tag"
+        required: true
+        default: "latest"
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish-plugin:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build plugin package
+        run: npm run build
+
+      - name: Verify publish contents
+        run: |
+          npm pack --dry-run > pack-preview.txt
+          if grep -E "src/|\\.test\\.|vitest" pack-preview.txt >/dev/null 2>&1; then
+            echo "Pack preview unexpectedly includes source or test files."
+            cat pack-preview.txt
+            exit 1
+          fi
+
+      - name: Read package metadata
+        id: package_meta
+        run: |
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          echo "name=${PACKAGE_NAME}" >> "$GITHUB_OUTPUT"
+          echo "version=${PACKAGE_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Fail if package version already exists
+        run: |
+          if npm view "${{ steps.package_meta.outputs.name }}@${{ steps.package_meta.outputs.version }}" version >/dev/null 2>&1; then
+            echo "Package version already exists on npm:"
+            echo "${{ steps.package_meta.outputs.name }}@${{ steps.package_meta.outputs.version }}"
+            exit 1
+          fi
+
+      - name: Publish package
+        run: npm publish --access public --tag "${{ inputs.npm_tag }}"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

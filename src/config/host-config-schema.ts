@@ -1,0 +1,107 @@
+export interface GenericHttpHostConfigSchemaProperty {
+  type?: string;
+  title?: string;
+  description?: string;
+  format?: string;
+  minimum?: number;
+  default?: unknown;
+  properties?: Record<string, GenericHttpHostConfigSchemaProperty>;
+  required?: string[];
+  additionalProperties?: boolean | GenericHttpHostConfigSchemaProperty;
+}
+
+export interface GenericHttpHostConfigSchema {
+  $schema: string;
+  type: "object";
+  title: string;
+  description: string;
+  properties: Record<string, GenericHttpHostConfigSchemaProperty>;
+  required: string[];
+  additionalProperties: boolean;
+}
+
+export const genericHttpHostConfigSchema: GenericHttpHostConfigSchema = {
+  $schema: "http://json-schema.org/draft-07/schema#",
+  type: "object",
+  title: "Generic HTTP Channel Config",
+  description:
+    "Configuration for the OpenClaw generic HTTP channel plugin using bridge/relay webhook and stream ingress.",
+  properties: {
+    enabled: {
+      type: "boolean",
+      title: "Enabled",
+      description: "Whether the generic HTTP channel is enabled.",
+      default: false
+    },
+    defaultAccount: {
+      type: "string",
+      title: "Default Account",
+      description: "Default account ID used when the host does not specify one."
+    },
+    accounts: {
+      type: "object",
+      title: "Accounts",
+      description: "Per-account bridge and outbound transport settings.",
+      additionalProperties: {
+        type: "object",
+        properties: {
+          baseUrl: {
+            type: "string",
+            format: "uri",
+            title: "Bridge Base URL",
+            description:
+              "Bridge or relay base URL used for probe, resolve, stream ingress, and outbound delivery."
+          },
+          apiKey: {
+            type: "string",
+            title: "API Key",
+            description: "Optional shared credential for bridge authentication."
+          },
+          signingSecret: {
+            type: "string",
+            title: "Signing Secret",
+            description:
+              "Shared secret used for signing outbound and stream transport requests."
+          },
+          inboundSecret: {
+            type: "string",
+            title: "Inbound Secret",
+            description:
+              "Optional dedicated secret for inbound webhook validation on the bridge side."
+          },
+          outboundSecret: {
+            type: "string",
+            title: "Outbound Secret",
+            description:
+              "Optional dedicated secret for outbound signing when outbound trust is split from inbound."
+          },
+          connectTimeoutMillis: {
+            type: "number",
+            minimum: 0,
+            title: "Connect Timeout (ms)",
+            description: "HTTP connect timeout in milliseconds.",
+            default: 5000
+          },
+          readTimeoutMillis: {
+            type: "number",
+            minimum: 0,
+            title: "Read Timeout (ms)",
+            description: "HTTP read timeout in milliseconds.",
+            default: 10000
+          },
+          maxRetries: {
+            type: "number",
+            minimum: 0,
+            title: "Max Retries",
+            description: "Maximum retry count for retryable outbound HTTP failures.",
+            default: 0
+          }
+        },
+        required: ["baseUrl"],
+        additionalProperties: false
+      }
+    }
+  },
+  required: ["enabled", "defaultAccount", "accounts"],
+  additionalProperties: false
+};

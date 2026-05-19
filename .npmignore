@@ -1,0 +1,7 @@
+src/
+dist/**/*.map
+coverage/
+node_modules/
+vitest.config.ts
+tsconfig.json
+*.log

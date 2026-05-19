@@ -1,0 +1,72 @@
+{
+  "name": "@kittymi/openclaw-generic-http",
+  "version": "0.1.2",
+  "description": "OpenClaw channel plugin for the generic HTTP protocol",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "openclaw.config.schema.json",
+    "openclaw.plugin.json",
+    "README.md"
+  ],
+  "keywords": [
+    "openclaw",
+    "plugin",
+    "channel",
+    "http",
+    "bridge"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KittyMi/openclaw-generic-http.git"
+  },
+  "homepage": "https://github.com/KittyMi/openclaw-generic-http",
+  "bugs": {
+    "url": "https://github.com/KittyMi/openclaw-generic-http/issues"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=22.16.0"
+  },
+  "openclaw": {
+    "pluginManifest": "./openclaw.plugin.json",
+    "extensions": [
+      "./dist/index.js"
+    ],
+    "runtimeExtensions": [
+      "./dist/index.js"
+    ],
+    "setupEntry": "./dist/setup-entry.js",
+    "runtimeSetupEntry": "./dist/setup-entry.js",
+    "setupFeatures": {
+      "configPromotion": true
+    },
+    "channel": {
+      "id": "generic-http",
+      "label": "Generic HTTP",
+      "selectionLabel": "Generic HTTP",
+      "detailLabel": "Generic HTTP Bridge",
+      "docsPath": "/channels/generic-http",
+      "docsLabel": "generic-http",
+      "blurb": "Bridge external systems into OpenClaw through webhook ingress and stream polling.",
+      "markdownCapable": false
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.29",
+    "typescript": "^5.8.3",
+    "vitest": "^2.1.8"
+  },
+  "scripts": {
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "pack:check": "node -e \"require('node:child_process').execSync('npm pack --dry-run',{stdio:'inherit'});\"",
+    "test": "vitest run",
+    "test:e2e": "npm run build && node scripts/e2e-bridge-regression.mjs"
+  }
+}

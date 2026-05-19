@@ -1,0 +1,18 @@
+{
+  "channels": {
+    "generic-http": {
+      "enabled": true,
+      "defaultAccount": "default",
+      "accounts": {
+        "default": {
+          "displayName": "Generic HTTP Local",
+          "baseUrl": "http://127.0.0.1:18082",
+          "apiKey": "local-dev-api-key",
+          "signingSecret": "local-dev-signing-secret",
+          "connectTimeoutMillis": 3000,
+          "readTimeoutMillis": 5000
+        }
+      }
+    }
+  }
+}
