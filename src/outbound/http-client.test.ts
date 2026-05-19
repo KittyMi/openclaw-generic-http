@@ -112,7 +112,7 @@ describe("HttpOutboundClient", () => {
 
   it("sends file and image attachments in the outbound payload", async () => {
     let capturedBody = "";
-    let capturedHeaders: HeadersInit | undefined;
+    let capturedHeaders: Record<string, string> | undefined;
     const client = new HttpOutboundClient(
       {
         baseUrl: "https://bridge.example.com",
@@ -126,7 +126,7 @@ describe("HttpOutboundClient", () => {
         nonceFactory: () => "nonce-003",
         fetchImpl: async (_, init) => {
           capturedBody = String(init?.body ?? "");
-          capturedHeaders = init?.headers;
+          capturedHeaders = init?.headers as Record<string, string> | undefined;
           return new Response(
             JSON.stringify({
               success: true,
@@ -180,6 +180,13 @@ describe("HttpOutboundClient", () => {
     expect(payload.message.attachments[1].kind).toBe("image");
     expect(payload.message.attachments[1].contentBase64).toBe("ZmFrZS1pbWFnZS1ieXRlcw==");
     expect(capturedHeaders).toMatchObject({
+      accept: "application/json",
+      "content-type": "application/json",
+      "x-api-key": "test-api-key",
+      "x-generic-http-version": "1",
+      "x-nonce": "nonce-003",
+      "x-request-id": "req_003",
+      "x-signature": expect.any(String),
       "x-timestamp": "1715958000"
     });
   });

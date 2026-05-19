@@ -51,6 +51,25 @@ function buildOutboundEndpoint(baseUrl: string): string {
   return new URL("/outbound/messages", baseUrl).toString();
 }
 
+function buildOutboundHeaders(
+  accountConfig: GenericHttpAccountConfig,
+  request: OutboundMessageRequest,
+  signature: string,
+  timestamp: string,
+  nonce: string
+): Record<string, string> {
+  return {
+    accept: "application/json",
+    "content-type": "application/json",
+    "x-api-key": accountConfig.apiKey ?? "",
+    "x-generic-http-version": "1",
+    "x-nonce": nonce,
+    "x-request-id": request.requestId,
+    "x-signature": signature,
+    "x-timestamp": timestamp
+  };
+}
+
 function parseOutboundResult(value: unknown): OutboundMessageResult {
   if (typeof value !== "object" || value === null) {
     throw new GenericHttpPluginError(
@@ -171,13 +190,13 @@ export class HttpOutboundClient implements OutboundClient {
       try {
         const response = await this.fetchImpl(endpoint, {
           method: "POST",
-          headers: {
-            "content-type": "application/json",
-            "x-api-key": this.accountConfig.apiKey ?? "",
-            "x-signature": signature,
-            "x-timestamp": timestamp,
-            "x-nonce": nonce
-          },
+          headers: buildOutboundHeaders(
+            this.accountConfig,
+            normalizedRequest,
+            signature,
+            timestamp,
+            nonce
+          ),
           body: rawBody,
           signal: createTimeoutSignal(this.accountConfig.readTimeoutMillis ?? 10000)
         });
