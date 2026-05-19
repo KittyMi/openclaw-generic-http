@@ -27,19 +27,19 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build plugin package
         run: npm run build
 
+      - name: Run unit tests
+        run: npm test
+
       - name: Verify publish contents
-        run: |
-          npm pack --dry-run > pack-preview.txt
-          if grep -E "src/|\\.test\\.|vitest" pack-preview.txt >/dev/null 2>&1; then
-            echo "Pack preview unexpectedly includes source or test files."
-            cat pack-preview.txt
-            exit 1
-          fi
+        run: npm run pack:check
+
+      - name: Run local bridge regression
+        run: npm run test:e2e
 
       - name: Read package metadata
         id: package_meta

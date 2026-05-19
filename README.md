@@ -42,6 +42,13 @@
 
 - OpenClaw `2026.5.12 (f066dd2)`
 
+| Item | Status |
+| --- | --- |
+| OpenClaw Desktop `2026.5.12` | Verified locally |
+| OpenClaw Desktop `2026.5.x` | Supported release line |
+| Node.js `22.x` | Verified in local/dev and CI |
+| Node.js `24.x` | Verified in local/dev and CI |
+
 说明：
 
 - `2026.5.x` 是当前 `0.1.2` 发布线声明支持的 OpenClaw 版本范围

@@ -16,6 +16,8 @@
 当前已验证版本：
 
 - OpenClaw `2026.5.12 (f066dd2)`
+- Node.js `22.x`
+- Node.js `24.x`
 
 对更早或更高的 OpenClaw 版本，当前不承诺兼容。
 
