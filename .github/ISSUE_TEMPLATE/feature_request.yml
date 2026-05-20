@@ -1,0 +1,28 @@
+name: Feature request
+description: Propose a new plugin or compatibility capability.
+title: "[Feature] "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the plugin behavior you want.
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility impact
+      description: Say whether this affects OpenClaw version support, protocol docs, or bridge expectations.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

@@ -130,3 +130,19 @@ npm run test:e2e
 - 安装与配置：[docs/01-installation-guide.md](./docs/01-installation-guide.md)
 - 常见问题：[docs/02-faq.md](./docs/02-faq.md)
 - 本地联调：[docs/03-local-dev.md](./docs/03-local-dev.md)
+
+## 开源协作
+
+当前仓库使用 [MIT License](./LICENSE)。
+
+社区协作入口：
+
+- 贡献说明：[CONTRIBUTING.md](./CONTRIBUTING.md)
+- 行为准则：[CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
+- 安全上报：[SECURITY.md](./SECURITY.md)
+
+如果你要提交代码或文档改动，建议优先：
+
+1. 先确认是否影响协议、签名、路由或 OpenClaw 兼容范围
+2. 再执行 `npm run build`、`npm test`、`npm run pack:check`、`npm run test:e2e`
+3. 最后同步更新 README、CHANGELOG 或示例配置

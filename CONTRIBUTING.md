@@ -1,34 +1,55 @@
-# 贡献说明
+# Contributing
 
-## 仓库定位
+## Scope
 
-这个仓库只承载 `openclaw-generic-http` 插件本身。
+This repository only maintains the `openclaw-generic-http` plugin.
 
-这里不放：
+It is responsible for:
 
-- 平台后端代码
-- 平台前端代码
-- 与插件无直接关系的规划文档
+- channel transport
+- inbound request validation
+- outbound delivery
+- signing and signature verification
+- route mapping
+- OpenClaw host integration
 
-## 提交前要求
+It is not the place for:
 
-在提交实现改动前，请先确认：
+- platform backend code
+- platform frontend code
+- third-party business workflow logic
 
-1. 改动仍然符合 `generic-http protocol v1`
-2. 签名、时间戳、nonce 和路由行为没有被无意改坏
-3. 插件作用域仍然只限于 transport、mapping、security 和 host integration
-4. 行为变化已经补测试或补文档
+## Before you start
 
-## 协作规则
+Before submitting implementation changes, please confirm:
 
-1. 大改动先开 issue 或 discussion。
-2. 保持改动小而可审查。
-3. 不随意修改公开字段名、manifest 结构或 schema 语义。
-4. 如果改动影响安装、配置、兼容性或限制说明，同步更新 README。
+1. the change still follows `generic-http protocol v1`
+2. signing, timestamp, nonce, and route semantics were not accidentally changed
+3. the plugin still stays within transport, mapping, security, and host integration scope
+4. behavior changes are covered by tests or docs
 
-## 本地验证
+For protocol-facing changes, also check alignment with:
 
-提交前至少执行：
+- `openclaw-http-bridge/docs/02-protocol-v1.md`
+- `openclaw-http-bridge/docs/06-security-spec.md`
+- `openclaw-http-bridge/docs/08-session-routing-spec.md`
+- shared vectors under `openclaw-http-bridge/docs/test-vectors/`
+
+## Development expectations
+
+Please keep changes easy to review:
+
+- prefer small pull requests
+- do not casually rename public config keys, manifest fields, or payload fields
+- do not silently drift from the platform repository docs
+- update README when install, config, compatibility, or runtime behavior changes
+- update changelog for user-visible release work
+
+Major design changes should start with an issue or discussion.
+
+## Validation
+
+Run the relevant checks before opening a pull request:
 
 ```bash
 npm run build
@@ -36,3 +57,23 @@ npm test
 npm run pack:check
 npm run test:e2e
 ```
+
+If a change affects OpenClaw compatibility, note the exact OpenClaw version and
+Node.js version you used.
+
+If you could not run one of the checks, say so clearly in the pull request.
+
+## Pull request checklist
+
+Please include:
+
+1. what changed
+2. why the change was needed
+3. what you tested
+4. whether compatibility notes, docs, or examples changed
+
+## Security issues
+
+Do not open a public issue for an unpatched vulnerability.
+
+Use `SECURITY.md` and report the issue privately first.
