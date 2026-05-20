@@ -2,7 +2,21 @@
 
 本文档只说明插件安装、配置和最小验证流程。
 
-## 1. 安装前提
+## 1. 先确认适用性
+
+更适合当前插件的场景：
+
+- OpenClaw 在本地或内网运行
+- 你已经有一个遵循 `generic-http protocol v1` 的 bridge / relay / platform
+- 目标是先打通文本消息和基础会话闭环
+
+当前不建议一上来就把它当成：
+
+- 暴露公网入站地址的插件
+- 已经覆盖完整多版本兼容矩阵的成品插件
+- 复杂卡片、重型消息总线、多账号高级场景的一次性方案
+
+## 2. 安装前提
 
 - 已安装 OpenClaw
 - OpenClaw 能加载第三方插件
@@ -21,7 +35,13 @@
 
 对更早或更高的 OpenClaw 版本，当前不承诺兼容。
 
-## 2. 安装方式
+## 3. 安装方式
+
+推荐优先级：
+
+1. 从 npm 安装
+2. 本地目录安装
+3. 本地 link 用于开发调试
 
 从 npm 安装：
 
@@ -41,7 +61,7 @@ openclaw plugins install /path/to/openclaw-generic-http
 openclaw plugins link /path/to/openclaw-generic-http
 ```
 
-## 3. 最小配置
+## 4. 最小配置
 
 ```json
 {
@@ -72,7 +92,7 @@ openclaw plugins link /path/to/openclaw-generic-http
 - `readTimeoutMillis`: 读取超时
 - `maxRetries`: 可重试出站请求的最大重试次数
 
-## 4. 推荐启用流程
+## 5. 推荐启用流程
 
 1. 安装插件。
 2. 手工写入 `channels.generic-http` 配置。
@@ -88,7 +108,7 @@ openclaw plugins link /path/to/openclaw-generic-http
 
 因此对 `openclaw-generic-http`，当前更可靠的方式仍然是手工写配置。
 
-## 5. 首次联调顺序
+## 6. 首次联调顺序
 
 建议按这个顺序联调：
 
@@ -106,7 +126,14 @@ npm run test:e2e
 
 这个脚本会启动一个最小本地 bridge，并用真实 HTTP 请求验证 `health`、`probe`、`resolve`、`stream/inbound`、`stream/acks` 和 `outbound/messages`。
 
-## 6. 故障排查
+## 7. 已知限制
+
+- 当前正式声明支持 OpenClaw Desktop `2026.5.x`
+- 当前只在 `2026.5.12 (f066dd2)` 做过本机验证
+- 更高或更低的 OpenClaw 版本当前不承诺兼容
+- 第三方 channel 不一定能被 `openclaw channels add --channel ...` 自动枚举
+
+## 8. 故障排查
 
 插件未显示：
 

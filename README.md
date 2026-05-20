@@ -9,7 +9,22 @@
 - 通过 `POST /outbound/messages` 发送 OpenClaw 出站消息
 - 处理配置、安全签名、会话路由和宿主生命周期适配
 
-## 当前完整度
+## 这个插件适不适合你
+
+适合：
+
+- OpenClaw 运行在本地或内网
+- 第三方系统通过 webhook 把事件写入 bridge / relay
+- OpenClaw 通过 stream 主动拉取入站事件
+- 当前目标是先打通文本消息和基础会话闭环
+
+不适合：
+
+- 需要插件自己直接暴露公网入站地址
+- 一开始就要求复杂卡片、多租户工作台、重型消息总线
+- 需要已经覆盖完整 OpenClaw 多版本兼容矩阵的成品插件
+
+## 发布定位
 
 当前版本已经具备 `0.1.x` 首次独立发布所需的最小闭环：
 
@@ -55,19 +70,40 @@
 - 当前只在 `2026.5.12` 做过实际本机验证
 - 对 `2026.4.x` 及更早版本、以及 `2026.6.x` 及更高版本，当前不承诺兼容
 
-## 安装
+## 快速开始
+
+1. 安装插件：
 
 ```bash
 openclaw plugins install @kittymi/openclaw-generic-http
 ```
 
-或：
+2. 在 `openclaw.json` 中写入 `channels.generic-http`
+3. 执行 `openclaw channels list --all`
+4. 执行 `openclaw channels status --channel generic-http`
+5. 验证目标 bridge 的 `health / probe / stream / outbound` 链路
+
+当前更推荐通过 OpenClaw 插件机制安装，而不是只做全局 npm 安装。
+
+## 安装方式
+
+推荐方式：
+
+```bash
+openclaw plugins install @kittymi/openclaw-generic-http
+```
+
+如果你在本地调试插件源码：
+
+```bash
+openclaw plugins link /path/to/openclaw-generic-http
+```
+
+只做全局安装也可以，但不是当前首选方式：
 
 ```bash
 npm install -g @kittymi/openclaw-generic-http
 ```
-
-当前更推荐通过 OpenClaw 插件机制安装，而不是只做全局 npm 安装。
 
 ## 配置示例
 
@@ -93,20 +129,31 @@ npm install -g @kittymi/openclaw-generic-http
 
 本地联调样例见 [dev-config/README.md](./dev-config/README.md) 和 [dev-config/openclaw-generic-http.local.json](./dev-config/openclaw-generic-http.local.json)。
 
-## 适用场景
+## 最小验证路径
 
-适合：
+建议第一次接入按这个顺序验证：
 
-- 本地或内网运行的 OpenClaw
-- 第三方系统通过 webhook 写入 bridge
-- OpenClaw 通过 stream 主动拉取入站事件
+1. `openclaw channels status --channel generic-http`
+2. bridge `GET /health`
+3. bridge `POST /probe`
+4. 插件 `POST /outbound/messages`
+5. 第三方系统写 `POST /webhooks/inbound/messages`
+6. 插件消费 `GET /stream/inbound` 和 `POST /stream/acks`
 
-不适合：
+如果只想快速验证插件和最小 bridge 是否真实互通，可以直接运行：
 
-- 需要插件直接暴露公网入站地址的场景
-- 一开始就要覆盖复杂卡片、多租户工作台、重型消息总线的场景
+```bash
+npm run test:e2e
+```
 
-## 本地开发
+## 已知限制
+
+- 当前正式兼容声明只覆盖 OpenClaw Desktop `2026.5.x`
+- 当前只在 `2026.5.12 (f066dd2)` 做过本机验证
+- `openclaw channels add --channel ...` 仍主要依赖内置静态 catalog，第三方 channel 不一定直接出现在交互式枚举里
+- 当前重点仍是最小闭环，不是全量平台能力
+
+## 本地开发与发布前检查
 
 ```bash
 npm install
@@ -116,20 +163,12 @@ npm run pack:check
 npm run test:e2e
 ```
 
-当前 OpenClaw 桌面版本下，更可靠的启用方式仍然是：
-
-1. 安装插件
-2. 手工写入 `channels.generic-http`
-3. 执行 `openclaw channels list --all`
-4. 执行 `openclaw channels status --channel generic-http`
-
-`openclaw channels add --channel ...` 仍主要依赖内置静态 catalog，不一定能直接枚举第三方 channel。
-
 ## 文档
 
 - 安装与配置：[docs/01-installation-guide.md](./docs/01-installation-guide.md)
-- 常见问题：[docs/02-faq.md](./docs/02-faq.md)
+- 常见问题与限制：[docs/02-faq.md](./docs/02-faq.md)
 - 本地联调：[docs/03-local-dev.md](./docs/03-local-dev.md)
+- 文档目录：[docs/README.md](./docs/README.md)
 
 ## 开源协作
 

@@ -22,3 +22,11 @@
 ```bash
 npm run test:e2e
 ```
+
+建议把本地联调目标限制在这三件事：
+
+- 插件能被 OpenClaw 正常加载
+- 插件能正确调用 `health / probe / resolve`
+- 插件能完成 `stream/inbound / stream/acks / outbound/messages` 闭环
+
+如果这三件事还没稳定，不建议先扩复杂附件、多账号或更多宿主行为。
