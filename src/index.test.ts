@@ -187,7 +187,18 @@ describe("registerPlugin", () => {
       name: "Default account",
       enabled: true,
       configured: true,
-      baseUrl: "https://bridge.example.com"
+      baseUrl: "https://bridge.example.com",
+      configuration: {
+        baseUrlConfigured: true,
+        apiKeyConfigured: false,
+        signingSecretConfigured: true,
+        inboundSecretConfigured: true,
+        outboundSecretConfigured: true,
+        readyForStream: true,
+        readyForOutbound: true,
+        status: "OK",
+        issues: []
+      }
     });
     expect(
       openClawGenericHttpChannelPlugin.status.buildAccountSnapshot({
@@ -198,7 +209,46 @@ describe("registerPlugin", () => {
       defaultAccountId: "online_001",
       isDefault: true,
       configured: true,
-      baseUrl: "https://bridge.example.com"
+      baseUrl: "https://bridge.example.com",
+      configuration: {
+        status: "OK",
+        readyForStream: true,
+        readyForOutbound: true
+      }
+    });
+  });
+
+  it("reports degraded configuration details when a required transport field is missing", () => {
+    const account = openClawGenericHttpChannelPlugin.config.resolveAccount(
+      {
+        channels: {
+          "generic-http": {
+            enabled: true,
+            defaultAccount: "online_001",
+            accounts: {
+              online_001: {
+                baseUrl: "https://bridge.example.com"
+              }
+            }
+          }
+        }
+      },
+      "online_001"
+    );
+
+    expect(
+      openClawGenericHttpChannelPlugin.status.buildAccountSnapshot({
+        account
+      })
+    ).toMatchObject({
+      accountId: "online_001",
+      configuration: {
+        signingSecretConfigured: false,
+        readyForStream: false,
+        readyForOutbound: false,
+        status: "DEGRADED",
+        issues: ["signingSecret is missing"]
+      }
     });
   });
 

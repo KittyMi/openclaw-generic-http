@@ -101,8 +101,59 @@ type GenericHttpResolvedAccount = {
   config: GenericHttpPluginConfig["accounts"][string];
 };
 
+type GenericHttpAccountConfigurationDiagnostic = {
+  baseUrlConfigured: boolean;
+  apiKeyConfigured: boolean;
+  signingSecretConfigured: boolean;
+  inboundSecretConfigured: boolean;
+  outboundSecretConfigured: boolean;
+  readyForStream: boolean;
+  readyForOutbound: boolean;
+  status: "OK" | "DEGRADED";
+  issues: string[];
+};
+
 function cloneConfig<T>(value: T): T {
   return JSON.parse(JSON.stringify(value ?? {})) as T;
+}
+
+function hasConfiguredValue(value?: string | null): boolean {
+  return typeof value === "string" && value.trim() !== "";
+}
+
+function buildAccountConfigurationDiagnostic(
+  account: GenericHttpResolvedAccount
+): GenericHttpAccountConfigurationDiagnostic {
+  const baseUrlConfigured = hasConfiguredValue(account.config.baseUrl);
+  const apiKeyConfigured = hasConfiguredValue(account.config.apiKey);
+  const signingSecretConfigured = hasConfiguredValue(account.config.signingSecret);
+  const inboundSecretConfigured =
+    hasConfiguredValue(account.config.inboundSecret) || signingSecretConfigured;
+  const outboundSecretConfigured =
+    hasConfiguredValue(account.config.outboundSecret) || signingSecretConfigured;
+  const issues: string[] = [];
+
+  if (!baseUrlConfigured) {
+    issues.push("baseUrl is missing");
+  }
+  if (!signingSecretConfigured) {
+    issues.push("signingSecret is missing");
+  }
+
+  const readyForStream = baseUrlConfigured && inboundSecretConfigured;
+  const readyForOutbound = baseUrlConfigured && outboundSecretConfigured;
+
+  return {
+    baseUrlConfigured,
+    apiKeyConfigured,
+    signingSecretConfigured,
+    inboundSecretConfigured,
+    outboundSecretConfigured,
+    readyForStream,
+    readyForOutbound,
+    status: issues.length === 0 ? "OK" : "DEGRADED",
+    issues
+  };
 }
 
 function readChannelSection(cfg: OpenClawConfigLike): Partial<GenericHttpPluginConfig> {
@@ -790,6 +841,7 @@ function buildOpenClawChannelPlugin() {
         return account.configured;
       },
       describeAccount(account: GenericHttpResolvedAccount) {
+        const configuration = buildAccountConfigurationDiagnostic(account);
         return {
           accountId: account.accountId,
           defaultAccountId: account.defaultAccountId,
@@ -797,7 +849,8 @@ function buildOpenClawChannelPlugin() {
           name: account.name,
           enabled: account.enabled,
           configured: account.configured,
-          baseUrl: account.config.baseUrl
+          baseUrl: account.config.baseUrl,
+          configuration
         };
       },
       setAccountEnabled(params: {
@@ -903,6 +956,7 @@ function buildOpenClawChannelPlugin() {
         probe?: { status?: string };
       }) {
         const runtime = params.runtime;
+        const configuration = buildAccountConfigurationDiagnostic(params.account);
         return {
           accountId: params.account.accountId,
           defaultAccountId: params.account.defaultAccountId,
@@ -911,6 +965,7 @@ function buildOpenClawChannelPlugin() {
           enabled: params.account.enabled,
           configured: params.account.configured,
           baseUrl: params.account.config.baseUrl,
+          configuration,
           running: runtime?.running ?? false,
           connected: runtime?.connected ?? false,
           lastStartAt: runtime?.lastStartAt ?? null,

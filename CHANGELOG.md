@@ -17,6 +17,11 @@
 - 宿主 `attachments[]` 与旧的 `mediaUrl/mediaUrls` 都会被统一映射到协议附件数组
 - 最小 bridge e2e 回归已覆盖文本 + 文件 + 图片附件的出站请求
 
+### 状态与诊断
+
+- 账号状态快照新增结构化配置诊断，区分 `baseUrl`、`apiKey`、`signingSecret` 等是否已配置
+- 账号状态快照现在会标出 `readyForStream`、`readyForOutbound` 和 `DEGRADED` 原因
+
 ## [0.1.3] - 2026-05-19
 
 ### 仓库独立化与发布收口
