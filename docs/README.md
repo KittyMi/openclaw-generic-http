@@ -8,5 +8,6 @@
 2. [01-installation-guide.md](./01-installation-guide.md)
 3. [02-faq.md](./02-faq.md)
 4. [03-local-dev.md](./03-local-dev.md)
+5. [04-next-phase-plan.md](./04-next-phase-plan.md)
 
 其余实现、协议和测试说明以源码、README 以及上游协作仓库中的协议文档为准。

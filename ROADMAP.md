@@ -2,28 +2,37 @@
 
 仓库名称：`openclaw-generic-http`
 
-## 当前阶段
+## 当前状态
 
-当前目标不是继续扩功能面，而是把最小闭环收口成稳定的 `0.1.x` 插件发布线。
+`0.1.x` 阶段的最小插件发布线已经成立：
 
-## Phase 1：发布线稳定化
+- `webhook + stream` 运行时可用
+- OpenClaw 宿主接入可用
+- 最小 build/test/pack/e2e 已具备
 
-- 稳定 `webhook + stream` ingress 运行时
-- 稳定 host adapter 与 OpenClaw 注册入口
-- 固化 `accountId + conversationId + threadId` 路由模型
-- 收口 npm 发布元数据、README 和安装文档
-- 明确当前限制与兼容性边界
+下一阶段进入 `0.2.x`：
 
-## Phase 2：测试与兼容性增强
+- 富消息映射
+- 多账号与配置治理
+- 宿主兼容增强
+- 发布工程化
 
-- 增强 `probe`、`resolve`、`capabilities` 的异常路径覆盖
-- 补更多签名、防重放、幂等和重连测试
-- 增加 OpenClaw 宿主兼容性说明与版本矩阵
-- 增加 CI
+## Phase 4：`0.2.x` 富消息与配置治理
 
-## Phase 3：能力增强
+- 稳定文本、图片、文件、文本+附件的协议映射
+- 明确一个账号配置对应一个平台实例
+- 明确多账号配置模板与错误提示
+- 增加更清晰的 channel status 诊断输出
 
-- 评估更多附件与回复语义
-- 评估更细的错误映射和诊断能力
-- 继续完善联调与排障文档
-- 评估多账号和更细粒度的 route policy
+## Phase 5：`0.2.x` 兼容性与运行时健壮性
+
+- 增强 `probe`、`resolve`、`capabilities` 的错误分类
+- 增强 stream reconnect、退避和多账号并行行为
+- 增加 OpenClaw 与 Node.js 的正式兼容矩阵
+- 增加更完整的 CI 与发布前检查
+
+## Phase 6：`0.2.x` 协同发布治理
+
+- 与平台仓库持续同步协议文档、共享向量与兼容声明
+- 固化双仓 release checklist
+- 固化外部用户安装、升级与排障入口
