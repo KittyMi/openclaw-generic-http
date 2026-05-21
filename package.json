@@ -1,6 +1,6 @@
 {
   "name": "@kittymi/openclaw-generic-http",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "OpenClaw channel plugin for the generic HTTP protocol",
   "type": "module",
   "main": "dist/index.js",

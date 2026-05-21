@@ -1,7 +1,7 @@
 {
   "id": "openclaw-generic-http",
   "name": "Generic HTTP",
-  "version": "0.1.2",
+  "version": "0.1.5",
   "description": "Generic HTTP channel plugin for OpenClaw",
   "activation": {
     "onStartup": false

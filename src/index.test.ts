@@ -349,7 +349,15 @@ describe("registerPlugin", () => {
                 },
                 message: {
                   messageId: "msg-1",
-                  text: "hello"
+                  attachments: [
+                    {
+                      name: "报价单.xlsx",
+                      contentType:
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                      url: "https://cdn.example.com/quote.xlsx",
+                      sizeBytes: 56320
+                    }
+                  ]
                 },
                 occurredAt: "2026-05-19T08:00:00Z"
               }
@@ -550,6 +558,25 @@ describe("registerPlugin", () => {
     expect((dispatchedTurns[0]?.ctxPayload as Record<string, unknown>)?.ConversationLabel).toBe(
       "项目群 / thread-1"
     );
+    expect((dispatchedTurns[0]?.ctxPayload as Record<string, unknown>)?.Body).toContain(
+      "用户发送了附件"
+    );
+    expect((dispatchedTurns[0]?.ctxPayload as Record<string, unknown>)?.Body).toContain(
+      "报价单.xlsx"
+    );
+    expect((dispatchedTurns[0]?.ctxPayload as Record<string, unknown>)?.BodyForAgent).toContain(
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    expect((dispatchedTurns[0]?.ctxPayload as Record<string, unknown>)?.OriginalBody).toBe("");
+    expect((dispatchedTurns[0]?.ctxPayload as Record<string, unknown>)?.AttachmentCount).toBe(1);
+    expect((dispatchedTurns[0]?.ctxPayload as Record<string, unknown>)?.MessageAttachments).toEqual([
+      {
+        name: "报价单.xlsx",
+        contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        url: "https://cdn.example.com/quote.xlsx",
+        sizeBytes: 56320
+      }
+    ]);
     expect((dispatchedTurns[0]?.ctxPayload as Record<string, unknown>)?.From).toBe(
       "项目群 / thread-1"
     );

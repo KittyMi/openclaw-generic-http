@@ -483,6 +483,68 @@ function buildConversationLabel(params: {
   return `${baseLabel} / ${threadId}`;
 }
 
+function describeInboundAttachment(attachment: AttachmentDto, index: number): string {
+  const kind = attachment.kind ?? inferAttachmentKind(attachment);
+  const name = normalizeOptionalText(attachment.name) ?? `未命名${kind === "image" ? "图片" : "文件"}#${index + 1}`;
+  const contentType = normalizeOptionalText(attachment.contentType);
+  const sizeBytes =
+    typeof attachment.sizeBytes === "number" && Number.isFinite(attachment.sizeBytes)
+      ? attachment.sizeBytes
+      : undefined;
+  const segments = [name];
+
+  if (contentType) {
+    segments.push(contentType);
+  }
+  if (sizeBytes !== undefined) {
+    segments.push(`${sizeBytes} bytes`);
+  }
+
+  return segments.join(" | ");
+}
+
+function buildInboundAttachmentSummary(attachments: AttachmentDto[]): string {
+  if (attachments.length === 0) {
+    return "";
+  }
+
+  const imageCount = attachments.filter((attachment) => {
+    const kind = attachment.kind ?? inferAttachmentKind(attachment);
+    return kind === "image";
+  }).length;
+  const fileCount = attachments.length - imageCount;
+  const counters: string[] = [];
+
+  if (imageCount > 0) {
+    counters.push(`${imageCount} 张图片`);
+  }
+  if (fileCount > 0) {
+    counters.push(`${fileCount} 个文件`);
+  }
+
+  const details = attachments
+    .map((attachment, index) => `- ${describeInboundAttachment(attachment, index)}`)
+    .join("\n");
+
+  return `用户发送了附件：${counters.join("，") || `${attachments.length} 个附件`}\n${details}`;
+}
+
+function buildInboundAgentText(
+  text: string | null,
+  attachments: AttachmentDto[]
+): string {
+  const normalizedText = normalizeOptionalText(text);
+  const attachmentSummary = buildInboundAttachmentSummary(attachments);
+
+  if (normalizedText && attachmentSummary) {
+    return `${normalizedText}\n\n${attachmentSummary}`;
+  }
+  if (normalizedText) {
+    return normalizedText;
+  }
+  return attachmentSummary;
+}
+
 function requireChannelRuntime(
   value: unknown
 ): OpenClawChannelRuntimeLike {
@@ -591,11 +653,16 @@ async function dispatchInboundEventToOpenClaw(params: {
       ? undefined
       : normalizeDisplayText(params.event.conversationTitle) ?? params.event.conversationId;
   const inboundFrom = chatType === "direct" ? senderName : conversationLabel;
+  const inboundAgentText = buildInboundAgentText(
+    params.event.text,
+    params.event.attachments
+  );
   const ctxPayload = finalizeInboundContextForRuntime(runtime, {
-    Body: params.event.text ?? "",
-    BodyForAgent: params.event.text ?? "",
-    RawBody: params.event.text ?? "",
-    CommandBody: params.event.text ?? "",
+    Body: inboundAgentText,
+    BodyForAgent: inboundAgentText,
+    RawBody: inboundAgentText,
+    CommandBody: inboundAgentText,
+    OriginalBody: params.event.text ?? "",
     From: inboundFrom,
     To: targetRef,
     SessionKey: routeSessionKey,
@@ -613,6 +680,8 @@ async function dispatchInboundEventToOpenClaw(params: {
     MessageSidFull: params.event.messageId,
     ReplyToId: params.event.replyToMessageId ?? undefined,
     Timestamp: parseOccurredAtMillis(params.event.occurredAt),
+    MessageAttachments: params.event.attachments,
+    AttachmentCount: params.event.attachments.length,
     OriginatingChannel: CHANNEL_ID,
     OriginatingTo: targetRef,
     CommandAuthorized: false,
@@ -622,7 +691,8 @@ async function dispatchInboundEventToOpenClaw(params: {
         kind: "generic-http",
         eventId: params.event.eventId,
         idempotencyKey: params.event.idempotencyKey,
-        metadata: params.event.metadata
+        metadata: params.event.metadata,
+        attachments: params.event.attachments
       }
     ]
   });

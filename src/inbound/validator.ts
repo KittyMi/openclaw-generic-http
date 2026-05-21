@@ -43,7 +43,7 @@ function validateOptionalString(value: unknown, field: string): void {
 }
 
 function validateMetadata(value: unknown, field: string): void {
-  if (value !== undefined && !isRecord(value)) {
+  if (value !== undefined && value !== null && !isRecord(value)) {
     throw new GenericHttpPluginError(
       ERROR_CODES.INVALID_FIELD_FORMAT,
       `Field "${field}" must be an object when provided.`,

@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-05-21
+
+### 入站附件理解闭环
+
+- 插件现在会把 inbound `attachments[]` 一并注入 OpenClaw runtime 上下文
+- 纯附件消息不再让宿主看到空 `Body`，而是生成可读的附件摘要文本
+- 文本 + 附件消息会把附件摘要拼进 `BodyForAgent`
+- runtime 上下文新增 `OriginalBody`、`MessageAttachments` 和 `AttachmentCount`
+- stream 回归测试已覆盖“纯 xlsx 附件无文本”进入 agent 上下文的场景
+
 ## [0.1.4] - 2026-05-21
 
 ### 配置治理与默认账号口径
