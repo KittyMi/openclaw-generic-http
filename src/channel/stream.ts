@@ -13,6 +13,7 @@ export interface StreamPullOptions {
   nonceFactory?: () => string;
   requestIdFactory?: () => string;
   limit?: number;
+  waitSeconds?: number;
 }
 
 export interface StreamAckOptions {
@@ -130,6 +131,9 @@ export async function pullInboundMessages(
   const endpoint = new URL("/stream/inbound", accountConfig.baseUrl);
   endpoint.searchParams.set("accountId", accountId);
   endpoint.searchParams.set("limit", String(options.limit ?? 10));
+  if ((options.waitSeconds ?? 0) > 0) {
+    endpoint.searchParams.set("waitSeconds", String(Math.max(0, Math.floor(options.waitSeconds ?? 0))));
+  }
 
   const timestamp = String(resolvedOptions.nowEpochSeconds());
   const nonce = resolvedOptions.nonceFactory();
@@ -185,16 +189,22 @@ export async function ackInboundMessages(
   accountId: string,
   eventIds: string[],
   accountConfig: GenericHttpAccountConfig,
-  options: StreamAckOptions = {}
+  options: StreamAckOptions = {},
+  lastEventId?: string | null
 ): Promise<AckInboundMessagesResult> {
   const normalizedEventIds = eventIds
     .map((eventId) => eventId.trim())
     .filter((eventId) => eventId !== "");
   const resolvedOptions = resolveRequiredOptions(options);
   const endpoint = new URL("/stream/acks", accountConfig.baseUrl);
+  const normalizedLastEventId =
+    typeof lastEventId === "string" && lastEventId.trim() !== ""
+      ? lastEventId.trim()
+      : undefined;
   const rawBody = serializeProtocolObject({
     accountId,
-    eventIds: normalizedEventIds
+    eventIds: normalizedEventIds,
+    ...(normalizedLastEventId ? { lastEventId: normalizedLastEventId } : {})
   });
   const timestamp = String(resolvedOptions.nowEpochSeconds());
   const nonce = resolvedOptions.nonceFactory();

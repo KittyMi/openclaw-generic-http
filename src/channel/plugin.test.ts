@@ -3,6 +3,101 @@ import { describe, expect, it, vi } from "vitest";
 import { createGenericHttpChannelPlugin } from "./plugin.js";
 
 describe("createGenericHttpChannelPlugin", () => {
+  it("should include long-poll waitSeconds when pulling inbound messages", async () => {
+    const requests: string[] = [];
+    const plugin = createGenericHttpChannelPlugin(
+      {
+        enabled: true,
+        defaultAccount: "acct-1",
+        accounts: {
+          "acct-1": {
+            baseUrl: "https://bridge.example.com",
+            signingSecret: "test-signing-secret"
+          }
+        }
+      },
+      {
+        streamPullOptions: {
+          fetchImpl: async (input) => {
+            requests.push(String(input));
+            return new Response("event: end\ndata: {\"accountId\":\"acct-1\",\"count\":0}\n\n", {
+              status: 200,
+              headers: { "content-type": "text/event-stream" }
+            });
+          }
+        }
+      }
+    );
+
+    await plugin.pullInboundMessages("acct-1");
+
+    expect(requests).toEqual([
+      "https://bridge.example.com/stream/inbound?accountId=acct-1&limit=10&waitSeconds=25"
+    ]);
+  });
+
+  it("should use cursor-style ack when an entire pulled batch succeeds", async () => {
+    const ackBodies: string[] = [];
+    const plugin = createGenericHttpChannelPlugin(
+      {
+        enabled: true,
+        defaultAccount: "acct-1",
+        accounts: {
+          "acct-1": {
+            baseUrl: "https://bridge.example.com",
+            signingSecret: "test-signing-secret"
+          }
+        }
+      },
+      {
+        onInboundStreamMessage() {
+          return;
+        },
+        streamPullOptions: {
+          fetchImpl: async () =>
+            new Response(
+              [
+                "event: inbound-message",
+                'data: {"eventId":"evt-ok-1","accountId":"acct-1","receivedAt":"2026-05-21T00:00:00Z","request":{"eventId":"evt-ok-1","accountId":"acct-1","conversation":{"conversationId":"room-1","type":"room"},"sender":{"id":"user-1","type":"user"},"message":{"messageId":"msg-ok-1","text":"first"}}}',
+                "",
+                "event: inbound-message",
+                'data: {"eventId":"evt-ok-2","accountId":"acct-1","receivedAt":"2026-05-21T00:00:01Z","request":{"eventId":"evt-ok-2","accountId":"acct-1","conversation":{"conversationId":"room-1","type":"room"},"sender":{"id":"user-2","type":"user"},"message":{"messageId":"msg-ok-2","text":"second"}}}',
+                ""
+              ].join("\n"),
+              { status: 200, headers: { "content-type": "text/event-stream" } }
+            ),
+          nowEpochSeconds: () => 1715958000,
+          nonceFactory: () => "pull-nonce",
+          requestIdFactory: () => "pull-request-id"
+        },
+        streamAckOptions: {
+          fetchImpl: async (_, init) => {
+            ackBodies.push(String(init?.body ?? ""));
+            return new Response(
+              JSON.stringify({
+                success: true,
+                accountId: "acct-1",
+                ackedEventIds: ["evt-ok-1", "evt-ok-2"]
+              }),
+              { status: 200, headers: { "content-type": "application/json" } }
+            );
+          },
+          nowEpochSeconds: () => 1715958001,
+          nonceFactory: () => "ack-nonce",
+          requestIdFactory: () => "ack-request-id"
+        },
+        streamIngressPollIntervalMillis: 60_000
+      }
+    );
+
+    await plugin.startStreamIngress("acct-1");
+    plugin.stopStreamIngress();
+
+    expect(ackBodies).toEqual([
+      '{"accountId":"acct-1","eventIds":[],"lastEventId":"evt-ok-2"}'
+    ]);
+  });
+
   it("should expose runtime status, remote probe, and remote resolve", async () => {
     const requests: Array<{ url: string; method: string; body: string }> = [];
     const plugin = createGenericHttpChannelPlugin({

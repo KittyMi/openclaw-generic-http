@@ -120,6 +120,10 @@ export function createGenericHttpChannelPlugin(
   const outboundClientFactory: OutboundClientFactory =
     options.outboundClientFactory ??
     createDefaultOutboundClientFactory(options.outboundClientOptions);
+  const streamPullOptions: StreamPullOptions = {
+    waitSeconds: 25,
+    ...options.streamPullOptions
+  };
   const streamIngressPollIntervalMillis =
     options.streamIngressPollIntervalMillis ?? 1000;
   let streamIngressRunning = false;
@@ -138,6 +142,7 @@ export function createGenericHttpChannelPlugin(
       return;
     }
 
+    let nextDelayMillis = 0;
     try {
       const accountConfig = resolveConfiguredAccount(config, accountId).config;
       let pulled: PullInboundMessagesResult;
@@ -145,9 +150,10 @@ export function createGenericHttpChannelPlugin(
         pulled = await pullInboundMessages(
           accountId,
           accountConfig,
-          options.streamPullOptions
+          streamPullOptions
         );
       } catch (error) {
+        nextDelayMillis = streamIngressPollIntervalMillis;
         await options.onInboundStreamError?.({
           phase: "pull",
           accountId,
@@ -175,14 +181,20 @@ export function createGenericHttpChannelPlugin(
       }
 
       if (ackedEventIds.length > 0) {
+        const lastEventId =
+          pulled.items.length > 0 && ackedEventIds.length === pulled.items.length
+            ? ackedEventIds[ackedEventIds.length - 1] ?? null
+            : null;
         try {
           await ackInboundMessages(
             accountId,
-            ackedEventIds,
+            lastEventId ? [] : ackedEventIds,
             accountConfig,
-            options.streamAckOptions
+            options.streamAckOptions,
+            lastEventId
           );
         } catch (error) {
+          nextDelayMillis = streamIngressPollIntervalMillis;
           await options.onInboundStreamError?.({
             phase: "ack",
             accountId,
@@ -195,7 +207,7 @@ export function createGenericHttpChannelPlugin(
       if (streamIngressRunning && streamIngressAccountId === accountId) {
         streamIngressTimer = setTimeout(() => {
           void runStreamIngressCycle(accountId);
-        }, streamIngressPollIntervalMillis);
+        }, nextDelayMillis);
       }
     }
   }
@@ -234,7 +246,7 @@ export function createGenericHttpChannelPlugin(
       return await pullInboundMessages(
         account.accountId,
         account.config,
-        options.streamPullOptions
+        streamPullOptions
       );
     },
     async ackInboundMessages(accountId, eventIds) {
