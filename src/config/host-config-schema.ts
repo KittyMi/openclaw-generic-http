@@ -36,7 +36,8 @@ export const genericHttpHostConfigSchema: GenericHttpHostConfigSchema = {
     defaultAccount: {
       type: "string",
       title: "Default Account",
-      description: "Default account ID used when the host does not specify one."
+      description:
+        "Default account ID used when the host does not specify one. Must match a real key under accounts."
     },
     accounts: {
       type: "object",

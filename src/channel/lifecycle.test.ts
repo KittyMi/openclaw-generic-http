@@ -101,8 +101,12 @@ describe("createGenericHttpChannelLifecycle", () => {
     lifecycle.stop();
 
     expect(onStreamError).toHaveBeenCalledTimes(1);
-    expect(String(onStreamError.mock.calls[0]?.[0])).toContain(
-      "GET /stream/inbound failed"
-    );
+    expect(onStreamError.mock.calls[0]?.[0]).toMatchObject({
+      phase: "pull",
+      accountId: "acct-1"
+    });
+    expect(
+      String(onStreamError.mock.calls[0]?.[0]?.error)
+    ).toContain("GET /stream/inbound failed");
   });
 });

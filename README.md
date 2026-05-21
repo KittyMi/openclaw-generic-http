@@ -16,7 +16,7 @@
 - OpenClaw 运行在本地或内网
 - 第三方系统通过 webhook 把事件写入 bridge / relay
 - OpenClaw 通过 stream 主动拉取入站事件
-- 当前目标是先打通文本消息和基础会话闭环
+- 当前目标是先打通文本、图片、文件和基础会话闭环
 
 不适合：
 
@@ -31,7 +31,7 @@
 - `webhook + stream` ingress 运行时
 - OpenClaw 宿主注册入口与 host adapter
 - `health / probe / resolve / capabilities`
-- 文本、图片、文件附件规范化
+- 文本、图片、文件与文本+附件混合消息规范化
 - 构建、测试与 npm 打包检查
 
 当前仍未完成的平台级能力：
@@ -114,9 +114,9 @@ npm install -g @kittymi/openclaw-generic-http
   "channels": {
     "generic-http": {
       "enabled": true,
-      "defaultAccount": "default",
+      "defaultAccount": "online_001",
       "accounts": {
-        "default": {
+        "online_001": {
           "baseUrl": "https://bridge.example.com",
           "apiKey": "replace-me",
           "signingSecret": "replace-me"
@@ -126,6 +126,12 @@ npm install -g @kittymi/openclaw-generic-http
   }
 }
 ```
+
+配置规则：
+
+- `defaultAccount` 必须指向 `accounts` 里真实存在的账号键
+- 一个账号配置对应一个平台 `accountId`
+- 不要再把示例账号统一写成 `default` 再到线上手改
 
 本地联调样例见 [dev-config/README.md](./dev-config/README.md) 和 [dev-config/openclaw-generic-http.local.json](./dev-config/openclaw-generic-http.local.json)。
 
@@ -168,6 +174,7 @@ npm run test:e2e
 - 安装与配置：[docs/01-installation-guide.md](./docs/01-installation-guide.md)
 - 常见问题与限制：[docs/02-faq.md](./docs/02-faq.md)
 - 本地联调：[docs/03-local-dev.md](./docs/03-local-dev.md)
+- 下一阶段规划：[docs/04-next-phase-plan.md](./docs/04-next-phase-plan.md)
 - 文档目录：[docs/README.md](./docs/README.md)
 
 ## 开源协作

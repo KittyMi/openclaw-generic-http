@@ -107,5 +107,9 @@ describe("createGenericHttpHostAdapter", () => {
     adapter.deactivate();
 
     expect(onStreamError).toHaveBeenCalledTimes(1);
+    expect(onStreamError.mock.calls[0]?.[0]).toMatchObject({
+      phase: "pull",
+      accountId: "acct-1"
+    });
   });
 });

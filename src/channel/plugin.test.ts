@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { createGenericHttpChannelPlugin } from "./plugin.js";
 
@@ -269,6 +269,79 @@ describe("createGenericHttpChannelPlugin", () => {
     expect(plugin.streamIngressStatus()).toEqual({
       running: false,
       accountId: null
+    });
+  });
+
+  it("should continue dispatching later inbound items when one event fails", async () => {
+    const ackBodies: string[] = [];
+    const onInboundStreamError = vi.fn();
+    const deliveredEventIds: string[] = [];
+    const plugin = createGenericHttpChannelPlugin(
+      {
+        enabled: true,
+        defaultAccount: "acct-1",
+        accounts: {
+          "acct-1": {
+            baseUrl: "https://bridge.example.com",
+            signingSecret: "test-signing-secret"
+          }
+        }
+      },
+      {
+        onInboundStreamMessage(item) {
+          if (item.eventId === "evt-fail") {
+            throw new Error("dispatch failed");
+          }
+          deliveredEventIds.push(item.eventId);
+        },
+        onInboundStreamError,
+        streamPullOptions: {
+          fetchImpl: async () =>
+            new Response(
+              [
+                "event: inbound-message",
+                'data: {"eventId":"evt-fail","accountId":"acct-1","receivedAt":"2026-05-21T00:00:00Z","request":{"eventId":"evt-fail","accountId":"acct-1","conversation":{"conversationId":"room-1","type":"room"},"sender":{"id":"user-1","type":"user"},"message":{"messageId":"msg-fail","text":"fail me"}}}',
+                "",
+                "event: inbound-message",
+                'data: {"eventId":"evt-ok","accountId":"acct-1","receivedAt":"2026-05-21T00:00:01Z","request":{"eventId":"evt-ok","accountId":"acct-1","conversation":{"conversationId":"room-1","type":"room"},"sender":{"id":"user-2","type":"user"},"message":{"messageId":"msg-ok","text":"continue"}}}',
+                ""
+              ].join("\n"),
+              { status: 200, headers: { "content-type": "text/event-stream" } }
+            ),
+          nowEpochSeconds: () => 1715958000,
+          nonceFactory: () => "pull-nonce",
+          requestIdFactory: () => "pull-request-id"
+        },
+        streamAckOptions: {
+          fetchImpl: async (_, init) => {
+            ackBodies.push(String(init?.body ?? ""));
+            return new Response(
+              JSON.stringify({
+                success: true,
+                accountId: "acct-1",
+                ackedEventIds: ["evt-ok"]
+              }),
+              { status: 200, headers: { "content-type": "application/json" } }
+            );
+          },
+          nowEpochSeconds: () => 1715958001,
+          nonceFactory: () => "ack-nonce",
+          requestIdFactory: () => "ack-request-id"
+        },
+        streamIngressPollIntervalMillis: 60_000
+      }
+    );
+
+    await plugin.startStreamIngress("acct-1");
+    plugin.stopStreamIngress();
+
+    expect(deliveredEventIds).toEqual(["evt-ok"]);
+    expect(ackBodies).toEqual(['{"accountId":"acct-1","eventIds":["evt-ok"]}']);
+    expect(onInboundStreamError).toHaveBeenCalledTimes(1);
+    expect(onInboundStreamError.mock.calls[0]?.[0]).toMatchObject({
+      phase: "dispatch",
+      accountId: "acct-1",
+      eventId: "evt-fail"
     });
   });
 });

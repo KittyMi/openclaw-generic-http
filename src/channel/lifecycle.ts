@@ -3,6 +3,7 @@ import type { NormalizedInboundMessageEvent } from "../inbound/mapper.js";
 import {
   createGenericHttpChannelPlugin,
   type GenericHttpChannelPlugin,
+  type GenericHttpStreamErrorContext,
   type GenericHttpChannelPluginRuntimeOptions
 } from "./plugin.js";
 
@@ -10,7 +11,7 @@ export interface GenericHttpChannelLifecycleHandlers {
   dispatchInboundEvent(
     event: NormalizedInboundMessageEvent
   ): Promise<void> | void;
-  onStreamError?(error: unknown): Promise<void> | void;
+  onStreamError?(context: GenericHttpStreamErrorContext): Promise<void> | void;
 }
 
 export interface GenericHttpChannelLifecycle {

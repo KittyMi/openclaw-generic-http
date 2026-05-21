@@ -233,6 +233,18 @@ async function main() {
       threadId: "thread-e2e",
       messageId: "out-e2e-1",
       text: "pong from plugin",
+      attachments: [
+        {
+          name: "report.pdf",
+          contentType: "application/pdf",
+          url: "https://cdn.example.com/report.pdf"
+        },
+        {
+          contentType: "image/png",
+          contentBase64: "ZmFrZS1pbWFnZS1ieXRlcw==",
+          altText: "chart"
+        }
+      ],
       metadata: {
         regression: true
       }
@@ -242,6 +254,9 @@ async function main() {
     assert.equal(state.outboundBodies.length, 1);
     assert.equal(state.outboundBodies[0]?.message?.text, "pong from plugin");
     assert.equal(state.outboundBodies[0]?.conversation?.conversationId, "room-e2e");
+    assert.equal(state.outboundBodies[0]?.message?.attachments?.length, 2);
+    assert.equal(state.outboundBodies[0]?.message?.attachments?.[0]?.kind, "file");
+    assert.equal(state.outboundBodies[0]?.message?.attachments?.[1]?.kind, "image");
   } finally {
     lifecycle.close();
     await new Promise((resolve, reject) => {

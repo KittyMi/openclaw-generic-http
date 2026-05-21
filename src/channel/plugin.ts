@@ -34,6 +34,7 @@ import {
   ackInboundMessages,
   pullInboundMessages,
   type AckInboundMessagesResult,
+  type PulledInboundMessage,
   type PullInboundMessagesResult,
   type StreamAckOptions,
   type StreamPullOptions
@@ -50,6 +51,16 @@ export interface GenericHttpChannelPluginStatus {
   accounts: string[];
 }
 
+export interface GenericHttpStreamErrorContext {
+  phase: "pull" | "dispatch" | "ack";
+  accountId: string;
+  error: unknown;
+  eventId?: string;
+  receivedAt?: string;
+  ackedEventIds?: string[];
+  item?: PulledInboundMessage;
+}
+
 export interface GenericHttpChannelPluginRuntimeOptions {
   outboundClientFactory?: OutboundClientFactory;
   outboundClientOptions?: HttpOutboundClientOptions;
@@ -61,7 +72,9 @@ export interface GenericHttpChannelPluginRuntimeOptions {
   onInboundStreamMessage?: (
     message: PullInboundMessagesResult["items"][number]
   ) => Promise<void> | void;
-  onInboundStreamError?: (error: unknown) => Promise<void> | void;
+  onInboundStreamError?: (
+    context: GenericHttpStreamErrorContext
+  ) => Promise<void> | void;
 }
 
 export interface GenericHttpStreamIngressStatus {
@@ -126,28 +139,58 @@ export function createGenericHttpChannelPlugin(
     }
 
     try {
-      const pulled = await pullInboundMessages(
-        accountId,
-        resolveConfiguredAccount(config, accountId).config,
-        options.streamPullOptions
-      );
+      const accountConfig = resolveConfiguredAccount(config, accountId).config;
+      let pulled: PullInboundMessagesResult;
+      try {
+        pulled = await pullInboundMessages(
+          accountId,
+          accountConfig,
+          options.streamPullOptions
+        );
+      } catch (error) {
+        await options.onInboundStreamError?.({
+          phase: "pull",
+          accountId,
+          error
+        });
+        return;
+      }
+
       const ackedEventIds: string[] = [];
 
       for (const item of pulled.items) {
-        await options.onInboundStreamMessage?.(item);
-        ackedEventIds.push(item.eventId);
+        try {
+          await options.onInboundStreamMessage?.(item);
+          ackedEventIds.push(item.eventId);
+        } catch (error) {
+          await options.onInboundStreamError?.({
+            phase: "dispatch",
+            accountId,
+            eventId: item.eventId,
+            receivedAt: item.receivedAt,
+            item,
+            error
+          });
+        }
       }
 
       if (ackedEventIds.length > 0) {
-        await ackInboundMessages(
-          accountId,
-          ackedEventIds,
-          resolveConfiguredAccount(config, accountId).config,
-          options.streamAckOptions
-        );
+        try {
+          await ackInboundMessages(
+            accountId,
+            ackedEventIds,
+            accountConfig,
+            options.streamAckOptions
+          );
+        } catch (error) {
+          await options.onInboundStreamError?.({
+            phase: "ack",
+            accountId,
+            ackedEventIds: ackedEventIds.slice(),
+            error
+          });
+        }
       }
-    } catch (error) {
-      await options.onInboundStreamError?.(error);
     } finally {
       if (streamIngressRunning && streamIngressAccountId === accountId) {
         streamIngressTimer = setTimeout(() => {

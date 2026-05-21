@@ -8,7 +8,7 @@
 
 - OpenClaw 在本地或内网运行
 - 你已经有一个遵循 `generic-http protocol v1` 的 bridge / relay / platform
-- 目标是先打通文本消息和基础会话闭环
+- 目标是先打通文本、图片、文件和基础会话闭环
 
 当前不建议一上来就把它当成：
 
@@ -68,9 +68,9 @@ openclaw plugins link /path/to/openclaw-generic-http
   "channels": {
     "generic-http": {
       "enabled": true,
-      "defaultAccount": "default",
+      "defaultAccount": "online_001",
       "accounts": {
-        "default": {
+        "online_001": {
           "baseUrl": "https://bridge.example.com",
           "apiKey": "test-api-key",
           "signingSecret": "test-signing-secret"
@@ -83,6 +83,7 @@ openclaw plugins link /path/to/openclaw-generic-http
 
 字段说明：
 
+- `defaultAccount`: 必须指向 `accounts` 里一个真实存在的账号键
 - `baseUrl`: bridge / relay 根地址
 - `apiKey`: 可选共享认证凭据
 - `signingSecret`: stream、probe、resolve、outbound 请求签名密钥
@@ -91,6 +92,8 @@ openclaw plugins link /path/to/openclaw-generic-http
 - `connectTimeoutMillis`: 连接超时
 - `readTimeoutMillis`: 读取超时
 - `maxRetries`: 可重试出站请求的最大重试次数
+
+推荐直接使用和平台实例一致的账号键，例如 `online_001`、`local_001`。不要把示例里的 `default` 复制到正式环境再临时改名。
 
 ## 5. 推荐启用流程
 

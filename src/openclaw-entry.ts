@@ -4,13 +4,20 @@ import {
   createGenericHttpChannelLifecycle,
   type GenericHttpChannelLifecycle
 } from "./channel/lifecycle.js";
-import { createGenericHttpChannelPlugin } from "./channel/plugin.js";
+import {
+  createGenericHttpChannelPlugin,
+  type GenericHttpStreamErrorContext
+} from "./channel/plugin.js";
+import { DEFAULT_ACCOUNT_ID, loadConfig } from "./config/loader.js";
+import { GenericHttpPluginError } from "./errors/exceptions.js";
 import type { NormalizedInboundMessageEvent } from "./inbound/mapper.js";
+import type { AttachmentDto } from "./protocol/dto.js";
 import type { GenericHttpPluginConfig } from "./config/schema.js";
+import { serializeProtocolObject } from "./protocol/serializer.js";
+import { signPayload } from "./security/signer.js";
 
 const CHANNEL_ID = "generic-http";
 const CHANNEL_SECTION = "generic-http";
-const DEFAULT_ACCOUNT_ID = "default";
 const ROOT_THREAD_ID = "__root__";
 
 type OpenClawConfigLike = {
@@ -86,6 +93,8 @@ type ChannelAccountRuntimeLike = {
 
 type GenericHttpResolvedAccount = {
   accountId: string;
+  defaultAccountId: string;
+  isDefault: boolean;
   enabled: boolean;
   name?: string;
   configured: boolean;
@@ -121,16 +130,18 @@ function resolveAccountSnapshot(
       ? accountId.trim()
       : resolved.defaultAccount;
   const account = resolved.accounts[normalizedAccountId];
+  const isDefault = normalizedAccountId === resolved.defaultAccount;
 
   return {
     accountId: normalizedAccountId,
+    defaultAccountId: resolved.defaultAccount,
+    isDefault,
     enabled: resolved.enabled,
-    name:
-      normalizedAccountId === resolved.defaultAccount
-        ? "Default account"
-        : normalizedAccountId,
+    name: isDefault ? "Default account" : normalizedAccountId,
     configured: typeof account?.baseUrl === "string" && account.baseUrl.trim() !== "",
-    config: account ?? resolved.accounts[DEFAULT_ACCOUNT_ID]
+    config: account ?? {
+      baseUrl: ""
+    }
   };
 }
 
@@ -271,6 +282,131 @@ function normalizeErrorMessage(error: unknown): string {
   return "unknown generic-http gateway error";
 }
 
+function normalizeErrorName(error: unknown): string {
+  if (error instanceof Error && error.name.trim() !== "") {
+    return error.name;
+  }
+  return typeof error;
+}
+
+function buildRuntimeIssueSummary(context: GenericHttpStreamErrorContext): string {
+  const suffix =
+    context.phase === "dispatch" && context.eventId
+      ? ` event=${context.eventId}`
+      : context.phase === "ack" && context.ackedEventIds
+        ? ` acked=${context.ackedEventIds.join(",")}`
+        : "";
+  return `generic-http ${context.phase} error:${suffix} ${normalizeErrorMessage(context.error)}`;
+}
+
+function buildRuntimeIssueHeaders(params: {
+  account: GenericHttpResolvedAccount;
+  path: string;
+  rawBody: string;
+  timestamp: string;
+  nonce: string;
+  requestId: string;
+}): Record<string, string> {
+  const signingSecret =
+    params.account.config.outboundSecret ?? params.account.config.signingSecret ?? "";
+  const signature = signPayload(signingSecret, {
+    method: "POST",
+    path: params.path,
+    timestamp: params.timestamp,
+    nonce: params.nonce,
+    rawBody: params.rawBody
+  });
+
+  return {
+    accept: "application/json",
+    "content-type": "application/json",
+    "x-api-key": params.account.config.apiKey ?? "",
+    "x-generic-http-version": "1",
+    "x-nonce": params.nonce,
+    "x-request-id": params.requestId,
+    "x-signature": signature,
+    "x-timestamp": params.timestamp
+  };
+}
+
+async function reportRuntimeIssueToPlatform(params: {
+  ctx: OpenClawGatewayContextLike;
+  issue: GenericHttpStreamErrorContext;
+}): Promise<void> {
+  const eventId = `evt-plugin-error-${randomUUID()}`;
+  const messageId = `msg-plugin-error-${randomUUID()}`;
+  const requestId = `req-plugin-error-${randomUUID()}`;
+  const path = "/webhooks/inbound/events";
+  const occurredAt = new Date().toISOString();
+  const normalizedEvent = params.issue.item?.normalizedEvent;
+  const eventType = `plugin.${params.issue.phase}.error`;
+  const payload = {
+    eventId,
+    eventType,
+    accountId: params.ctx.accountId,
+    conversation: normalizedEvent
+      ? {
+          conversationId: normalizedEvent.conversationId,
+          type: normalizedEvent.conversationType,
+          title: normalizedEvent.conversationTitle
+        }
+      : {
+          conversationId: `generic-http-runtime:${params.ctx.accountId}`,
+          type: "ticket",
+          title: "Generic HTTP Runtime"
+        },
+    threadId: normalizedEvent?.threadId ?? null,
+    sender: {
+      id: "openclaw-generic-http",
+      name: "Generic HTTP Plugin",
+      type: "system"
+    },
+    message: {
+      messageId,
+      text: buildRuntimeIssueSummary(params.issue),
+      metadata: {
+        phase: params.issue.phase,
+        errorName: normalizeErrorName(params.issue.error),
+        errorMessage: normalizeErrorMessage(params.issue.error),
+        sourceEventId: params.issue.eventId ?? normalizedEvent?.eventId ?? null,
+        ackedEventIds: params.issue.ackedEventIds ?? [],
+        pluginAccountId: params.ctx.accountId
+      }
+    },
+    occurredAt,
+    idempotencyKey: `plugin-error:${params.ctx.accountId}:${params.issue.phase}:${params.issue.eventId ?? requestId}`,
+    metadata: {
+      provider: CHANNEL_ID,
+      source: "openclaw-generic-http",
+      phase: params.issue.phase,
+      errorName: normalizeErrorName(params.issue.error)
+    }
+  };
+  const rawBody = serializeProtocolObject(payload);
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const nonce = randomUUID();
+  const endpoint = new URL(path, params.ctx.account.config.baseUrl).toString();
+  const headers = buildRuntimeIssueHeaders({
+    account: params.ctx.account,
+    path,
+    rawBody,
+    timestamp,
+    nonce,
+    requestId
+  });
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers,
+    body: rawBody
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `POST /webhooks/inbound/events failed with ${response.status} ${response.statusText}`
+    );
+  }
+}
+
 function normalizeDisplayText(value?: string | null): string | undefined {
   if (typeof value !== "string") {
     return undefined;
@@ -334,23 +470,9 @@ async function deliverOutboundReply(params: {
   payload: Record<string, unknown>;
 }): Promise<void> {
   const text = typeof params.payload.text === "string" ? params.payload.text : "";
-  const mediaUrls: string[] = [];
-  const rawMediaUrls = params.payload.mediaUrls;
+  const attachments = collectOutboundAttachments(params.payload);
 
-  if (Array.isArray(rawMediaUrls)) {
-    for (const mediaUrl of rawMediaUrls) {
-      if (typeof mediaUrl === "string" && mediaUrl.trim() !== "") {
-        mediaUrls.push(mediaUrl);
-      }
-    }
-  } else if (
-    typeof params.payload.mediaUrl === "string" &&
-    params.payload.mediaUrl.trim() !== ""
-  ) {
-    mediaUrls.push(params.payload.mediaUrl);
-  }
-
-  if (mediaUrls.length === 0) {
+  if (attachments.length === 0) {
     if (text.trim() === "") {
       return;
     }
@@ -364,16 +486,14 @@ async function deliverOutboundReply(params: {
     return;
   }
 
-  for (const [index, mediaUrl] of mediaUrls.entries()) {
-    await openClawGenericHttpChannelPlugin.outbound.sendMedia({
-      cfg: params.cfg,
-      to: toTargetRef(params.conversationId, params.conversationType),
-      text: index === 0 ? text : "",
-      mediaUrl,
-      threadId: params.threadId,
-      accountId: params.accountId
-    });
-  }
+  await openClawGenericHttpChannelPlugin.outbound.sendRich({
+    cfg: params.cfg,
+    to: toTargetRef(params.conversationId, params.conversationType),
+    text,
+    attachments,
+    threadId: params.threadId,
+    accountId: params.accountId
+  });
 }
 
 async function dispatchInboundEventToOpenClaw(params: {
@@ -488,26 +608,124 @@ async function dispatchInboundEventToOpenClaw(params: {
   });
 }
 
-function inferAttachmentKind(mediaUrl: string): "image" | "file" {
-  const pathname = new URL(mediaUrl).pathname.toLowerCase();
-  if (/\.(png|jpe?g|gif|webp|bmp|svg)$/.test(pathname)) {
+function inferAttachmentKind(source: {
+  url?: string;
+  contentType?: string;
+}): "image" | "file" {
+  if (typeof source.contentType === "string" && source.contentType.startsWith("image/")) {
     return "image";
   }
+
+  if (typeof source.url === "string" && source.url.trim() !== "") {
+    const pathname = new URL(source.url).pathname.toLowerCase();
+    if (/\.(png|jpe?g|gif|webp|bmp|svg)$/.test(pathname)) {
+      return "image";
+    }
+  }
+
   return "file";
 }
 
-function toAttachments(
-  mediaUrl?: string
-): Array<{ kind: "image" | "file"; url: string }> | undefined {
-  if (typeof mediaUrl !== "string" || mediaUrl.trim() === "") {
+function normalizeOptionalText(value: unknown): string | undefined {
+  if (typeof value !== "string") {
     return undefined;
   }
-  return [
-    {
-      kind: inferAttachmentKind(mediaUrl),
-      url: mediaUrl
+  const normalized = value.trim();
+  return normalized === "" ? undefined : normalized;
+}
+
+function toLegacyMediaAttachment(mediaUrl?: string): AttachmentDto | null {
+  const normalizedUrl = normalizeOptionalText(mediaUrl);
+  if (!normalizedUrl) {
+    return null;
+  }
+
+  return {
+    kind: inferAttachmentKind({ url: normalizedUrl }),
+    url: normalizedUrl
+  };
+}
+
+function normalizeOutboundAttachment(value: unknown): AttachmentDto | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const raw = value as Record<string, unknown>;
+  const url = normalizeOptionalText(raw.url);
+  const contentBase64 = normalizeOptionalText(raw.contentBase64);
+  if (!url && !contentBase64) {
+    return null;
+  }
+
+  const contentType = normalizeOptionalText(raw.contentType);
+  const kindValue = normalizeOptionalText(raw.kind);
+  const kind =
+    kindValue === "image" || kindValue === "file"
+      ? kindValue
+      : inferAttachmentKind({ url, contentType });
+  const sizeBytes =
+    typeof raw.sizeBytes === "number" && Number.isFinite(raw.sizeBytes)
+      ? raw.sizeBytes
+      : undefined;
+  const metadata =
+    raw.metadata && typeof raw.metadata === "object" && !Array.isArray(raw.metadata)
+      ? (raw.metadata as Record<string, unknown>)
+      : undefined;
+
+  return {
+    kind,
+    id: normalizeOptionalText(raw.id),
+    name: normalizeOptionalText(raw.name),
+    contentType,
+    url,
+    contentBase64,
+    sizeBytes,
+    caption: normalizeOptionalText(raw.caption) ?? null,
+    altText: normalizeOptionalText(raw.altText) ?? null,
+    previewUrl: normalizeOptionalText(raw.previewUrl),
+    metadata
+  };
+}
+
+function collectOutboundAttachments(payload: Record<string, unknown>): AttachmentDto[] {
+  const attachments: AttachmentDto[] = [];
+  const rawAttachments = payload.attachments;
+
+  if (Array.isArray(rawAttachments)) {
+    for (const attachment of rawAttachments) {
+      const normalized = normalizeOutboundAttachment(attachment);
+      if (normalized) {
+        attachments.push(normalized);
+      }
     }
-  ];
+  }
+
+  const rawMediaUrls = payload.mediaUrls;
+  if (Array.isArray(rawMediaUrls)) {
+    for (const mediaUrl of rawMediaUrls) {
+      const normalized = toLegacyMediaAttachment(
+        typeof mediaUrl === "string" ? mediaUrl : undefined
+      );
+      if (normalized) {
+        attachments.push(normalized);
+      }
+    }
+  } else {
+    const normalized = toLegacyMediaAttachment(
+      typeof payload.mediaUrl === "string" ? payload.mediaUrl : undefined
+    );
+    if (normalized) {
+      attachments.push(normalized);
+    }
+  }
+
+  return attachments;
+}
+
+function toAttachments(mediaUrl?: string): AttachmentDto[] | undefined {
+  const attachment = toLegacyMediaAttachment(mediaUrl);
+  return attachment ? [attachment] : undefined;
 }
 
 function nowRequestId(): string {
@@ -541,6 +759,17 @@ function buildOpenClawChannelPlugin() {
             errors: ["channels.generic-http must be an object"]
           };
         }
+        try {
+          loadConfig(value as Partial<GenericHttpPluginConfig>);
+        } catch (error) {
+          if (error instanceof GenericHttpPluginError) {
+            return {
+              ok: false,
+              errors: [error.message]
+            };
+          }
+          throw error;
+        }
         return { ok: true, value: value as object };
       }
     },
@@ -563,6 +792,8 @@ function buildOpenClawChannelPlugin() {
       describeAccount(account: GenericHttpResolvedAccount) {
         return {
           accountId: account.accountId,
+          defaultAccountId: account.defaultAccountId,
+          isDefault: account.isDefault,
           name: account.name,
           enabled: account.enabled,
           configured: account.configured,
@@ -674,6 +905,8 @@ function buildOpenClawChannelPlugin() {
         const runtime = params.runtime;
         return {
           accountId: params.account.accountId,
+          defaultAccountId: params.account.defaultAccountId,
+          isDefault: params.account.isDefault,
           name: params.account.name,
           enabled: params.account.enabled,
           configured: params.account.configured,
@@ -712,12 +945,20 @@ function buildOpenClawChannelPlugin() {
               await dispatchInboundEventToOpenClaw({ ctx, event });
             },
             async onStreamError(error) {
-              const message = normalizeErrorMessage(error);
+              const message = buildRuntimeIssueSummary(error);
               ctx.log?.error?.(`[${ctx.accountId}] ${message}`);
               ctx.setStatus({
                 accountId: ctx.accountId,
                 connected: false,
                 lastError: message
+              });
+              void reportRuntimeIssueToPlatform({
+                ctx,
+                issue: error
+              }).catch((reportError) => {
+                ctx.log?.error?.(
+                  `[${ctx.accountId}] failed to report runtime issue: ${normalizeErrorMessage(reportError)}`
+                );
               });
             }
           }
@@ -909,9 +1150,13 @@ function buildOpenClawChannelPlugin() {
           throw new Error("generic-http target is required");
         }
         const runtime = createRuntime(ctx.cfg);
+        const accountId =
+          typeof ctx.accountId === "string" && ctx.accountId.trim() !== ""
+            ? ctx.accountId.trim()
+            : runtime.status().defaultAccount;
         const result = await runtime.sendOutboundMessage({
           requestId: nowRequestId(),
-          accountId: ctx.accountId ?? DEFAULT_ACCOUNT_ID,
+          accountId,
           conversationId: parsed.conversationId,
           conversationType: parsed.conversationType,
           threadId:
@@ -942,9 +1187,13 @@ function buildOpenClawChannelPlugin() {
           throw new Error("generic-http target is required");
         }
         const runtime = createRuntime(ctx.cfg);
+        const accountId =
+          typeof ctx.accountId === "string" && ctx.accountId.trim() !== ""
+            ? ctx.accountId.trim()
+            : runtime.status().defaultAccount;
         const result = await runtime.sendOutboundMessage({
           requestId: nowRequestId(),
-          accountId: ctx.accountId ?? DEFAULT_ACCOUNT_ID,
+          accountId,
           conversationId: parsed.conversationId,
           conversationType: parsed.conversationType,
           threadId:
@@ -954,6 +1203,44 @@ function buildOpenClawChannelPlugin() {
           messageId: nowRequestId(),
           text: ctx.text,
           attachments: toAttachments(ctx.mediaUrl)
+        });
+        return {
+          channel: CHANNEL_ID,
+          messageId: result.providerMessageId,
+          conversationId: parsed.conversationId,
+          timestamp: Date.parse(result.acceptedAt),
+          meta: result.metadata
+        };
+      },
+      async sendRich(ctx: {
+        cfg: OpenClawConfigLike;
+        to: string;
+        text?: string;
+        attachments?: AttachmentDto[];
+        threadId?: string | number | null;
+        accountId?: string | null;
+      }) {
+        const parsed = parseTarget(ctx.to);
+        if (!parsed) {
+          throw new Error("generic-http target is required");
+        }
+        const runtime = createRuntime(ctx.cfg);
+        const accountId =
+          typeof ctx.accountId === "string" && ctx.accountId.trim() !== ""
+            ? ctx.accountId.trim()
+            : runtime.status().defaultAccount;
+        const result = await runtime.sendOutboundMessage({
+          requestId: nowRequestId(),
+          accountId,
+          conversationId: parsed.conversationId,
+          conversationType: parsed.conversationType,
+          threadId:
+            ctx.threadId === null || ctx.threadId === undefined
+              ? null
+              : String(ctx.threadId),
+          messageId: nowRequestId(),
+          text: ctx.text ?? "",
+          attachments: ctx.attachments
         });
         return {
           channel: CHANNEL_ID,

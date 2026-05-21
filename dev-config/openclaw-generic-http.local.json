@@ -2,9 +2,9 @@
   "channels": {
     "generic-http": {
       "enabled": true,
-      "defaultAccount": "default",
+      "defaultAccount": "local_001",
       "accounts": {
-        "default": {
+        "local_001": {
           "displayName": "Generic HTTP Local",
           "baseUrl": "http://127.0.0.1:18082",
           "apiKey": "local-dev-api-key",

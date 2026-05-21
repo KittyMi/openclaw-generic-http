@@ -41,6 +41,7 @@ export interface MessageDto {
 
 export interface InboundMessageRequestDto {
   eventId: string;
+  eventType?: string;
   accountId: string;
   conversation: ConversationDto;
   threadId?: string | null;

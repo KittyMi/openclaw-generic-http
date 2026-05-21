@@ -142,9 +142,132 @@ describe("registerPlugin", () => {
     expect(outboundRoute?.threadId).toBe("__root__");
   });
 
+  it("rejects channel config when defaultAccount does not match a configured account", () => {
+    expect(
+      openClawGenericHttpChannelPlugin.configSchema.validate({
+        enabled: true,
+        defaultAccount: "online_001",
+        accounts: {
+          online: {
+            baseUrl: "https://bridge.example.com"
+          }
+        }
+      })
+    ).toEqual({
+      ok: false,
+      errors: ["generic-http defaultAccount must reference a configured account."]
+    });
+  });
+
+  it("exposes default-account binding details in the OpenClaw account snapshot", () => {
+    const account = openClawGenericHttpChannelPlugin.config.resolveAccount(
+      {
+        channels: {
+          "generic-http": {
+            enabled: true,
+            defaultAccount: "online_001",
+            accounts: {
+              online_001: {
+                baseUrl: "https://bridge.example.com",
+                signingSecret: "test-signing-secret"
+              }
+            }
+          }
+        }
+      },
+      "online_001"
+    );
+
+    expect(
+      openClawGenericHttpChannelPlugin.config.describeAccount(account)
+    ).toEqual({
+      accountId: "online_001",
+      defaultAccountId: "online_001",
+      isDefault: true,
+      name: "Default account",
+      enabled: true,
+      configured: true,
+      baseUrl: "https://bridge.example.com"
+    });
+    expect(
+      openClawGenericHttpChannelPlugin.status.buildAccountSnapshot({
+        account
+      })
+    ).toMatchObject({
+      accountId: "online_001",
+      defaultAccountId: "online_001",
+      isDefault: true,
+      configured: true,
+      baseUrl: "https://bridge.example.com"
+    });
+  });
+
+  it("uses the configured default account for outbound delivery when the caller omits accountId", async () => {
+    const originalFetch = globalThis.fetch;
+    const outboundBodies: string[] = [];
+
+    globalThis.fetch = async (input, init) => {
+      const url = String(input);
+      if (url.endsWith("/outbound/messages")) {
+        outboundBodies.push(String(init?.body ?? ""));
+        return new Response(
+          JSON.stringify({
+            success: true,
+            code: "DELIVERED",
+            providerMessageId: "provider-default-account",
+            acceptedAt: "2026-05-21T00:00:00Z",
+            metadata: {}
+          }),
+          {
+            status: 200,
+            headers: { "content-type": "application/json" }
+          }
+        );
+      }
+      throw new Error(`unexpected fetch: ${url}`);
+    };
+
+    try {
+      await openClawGenericHttpChannelPlugin.outbound.sendText({
+        cfg: {
+          channels: {
+            "generic-http": {
+              enabled: true,
+              defaultAccount: "online_001",
+              accounts: {
+                online_001: {
+                  baseUrl: "https://bridge.example.com",
+                  signingSecret: "test-signing-secret"
+                }
+              }
+            }
+          }
+        },
+        to: "room:room-123",
+        text: "hello default account"
+      });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+
+    expect(outboundBodies).toHaveLength(1);
+    expect(JSON.parse(outboundBodies[0] ?? "{}")).toMatchObject({
+      accountId: "online_001",
+      conversation: {
+        conversationId: "room-123",
+        type: "room"
+      },
+      message: {
+        text: "hello default account"
+      }
+    });
+  });
+
   it("starts gateway stream ingress and dispatches inbound events through OpenClaw runtime", async () => {
     const originalFetch = globalThis.fetch;
     const outboundBodies: string[] = [];
+    const ackBodies: string[] = [];
+    const errorEventBodies: string[] = [];
     const statusPatches: Array<Record<string, unknown>> = [];
     const dispatchedTurns: Array<Record<string, unknown>> = [];
     const abortController = new AbortController();
@@ -182,6 +305,33 @@ describe("registerPlugin", () => {
               }
             })}`,
             "",
+            "event: inbound-message",
+            `data: ${JSON.stringify({
+              eventId: "evt-2",
+              accountId: "acct-1",
+              receivedAt: "2026-05-19T08:00:02Z",
+              request: {
+                eventId: "evt-2",
+                accountId: "acct-1",
+                conversation: {
+                  conversationId: "room-123",
+                  type: "room",
+                  title: "项目群"
+                },
+                threadId: "thread-1",
+                sender: {
+                  id: "user-2",
+                  name: "李四",
+                  type: "user"
+                },
+                message: {
+                  messageId: "msg-2",
+                  text: "follow up"
+                },
+                occurredAt: "2026-05-19T08:00:02Z"
+              }
+            })}`,
+            "",
             ""
           ].join("\n"),
           {
@@ -192,12 +342,13 @@ describe("registerPlugin", () => {
       }
 
       if (url.endsWith("/stream/acks")) {
+        ackBodies.push(String(init?.body ?? ""));
         abortController.abort();
         return new Response(
           JSON.stringify({
             success: true,
             accountId: "acct-1",
-            ackedEventIds: ["evt-1"]
+            ackedEventIds: ["evt-2"]
           }),
           {
             status: 200,
@@ -206,8 +357,32 @@ describe("registerPlugin", () => {
         );
       }
 
+      if (url.endsWith("/webhooks/inbound/events")) {
+        errorEventBodies.push(String(init?.body ?? ""));
+        return new Response(
+          JSON.stringify({
+            success: true,
+            code: "ACCEPTED",
+            requestId: "req-error-1",
+            eventId: "evt-plugin-error-1",
+            deduplicated: false,
+            message: "accepted"
+          }),
+          {
+            status: 202,
+            headers: { "content-type": "application/json" }
+          }
+        );
+      }
+
       if (url.endsWith("/outbound/messages")) {
         outboundBodies.push(String(init?.body ?? ""));
+        if (outboundBodies.length === 1) {
+          return new Response("upstream unavailable", {
+            status: 503,
+            statusText: "Service Unavailable"
+          });
+        }
         return new Response(
           JSON.stringify({
             success: true,
@@ -245,6 +420,8 @@ describe("registerPlugin", () => {
         accountId: "acct-1",
         account: {
           accountId: "acct-1",
+          defaultAccountId: "acct-1",
+          isDefault: true,
           enabled: true,
           name: "Default account",
           configured: true,
@@ -289,7 +466,21 @@ describe("registerPlugin", () => {
                   payload: Record<string, unknown>
                 ) => Promise<Record<string, unknown> | void>;
               };
-              const result = await delivery.deliver({ text: "pong" });
+              const result = await delivery.deliver({
+                text: "pong",
+                attachments: [
+                  {
+                    name: "report.pdf",
+                    contentType: "application/pdf",
+                    url: "https://cdn.example.com/report.pdf"
+                  },
+                  {
+                    contentType: "image/png",
+                    contentBase64: "ZmFrZS1pbWFnZS1ieXRlcw==",
+                    altText: "chart"
+                  }
+                ]
+              });
               expect(result).toEqual({ visibleReplySent: true });
             }
           }
@@ -299,7 +490,7 @@ describe("registerPlugin", () => {
       globalThis.fetch = originalFetch;
     }
 
-    expect(dispatchedTurns).toHaveLength(1);
+    expect(dispatchedTurns).toHaveLength(2);
     expect(dispatchedTurns[0]?.routeSessionKey).toBe(
       "agent:agent-1:generic-http:acct-1:channel:room-123:thread:thread-1"
     );
@@ -323,8 +514,8 @@ describe("registerPlugin", () => {
     expect((dispatchedTurns[0]?.ctxPayload as Record<string, unknown>)?.OriginatingTo).toBe(
       "room:room-123"
     );
-    expect(outboundBodies).toHaveLength(1);
-    expect(JSON.parse(outboundBodies[0] ?? "{}")).toMatchObject({
+    expect(outboundBodies).toHaveLength(2);
+    expect(JSON.parse(outboundBodies[1] ?? "{}")).toMatchObject({
       accountId: "acct-1",
       threadId: "thread-1",
       conversation: {
@@ -332,9 +523,40 @@ describe("registerPlugin", () => {
         type: "room"
       },
       message: {
-        text: "pong"
+        text: "pong",
+        attachments: [
+          {
+            kind: "file",
+            name: "report.pdf",
+            contentType: "application/pdf",
+            url: "https://cdn.example.com/report.pdf"
+          },
+          {
+            kind: "image",
+            contentType: "image/png",
+            contentBase64: "ZmFrZS1pbWFnZS1ieXRlcw==",
+            altText: "chart"
+          }
+        ]
       }
     });
+    expect(ackBodies).toEqual(['{"accountId":"acct-1","eventIds":["evt-2"]}']);
+    expect(errorEventBodies).toHaveLength(1);
+    expect(JSON.parse(errorEventBodies[0] ?? "{}")).toMatchObject({
+      eventType: "plugin.dispatch.error",
+      accountId: "acct-1",
+      conversation: {
+        conversationId: "room-123",
+        type: "room"
+      },
+      sender: {
+        id: "openclaw-generic-http",
+        type: "system"
+      }
+    });
+    expect(JSON.parse(errorEventBodies[0] ?? "{}").message?.text).toContain(
+      "generic-http dispatch error"
+    );
     expect(
       statusPatches.some((patch) => patch.running === true)
     ).toBe(true);
