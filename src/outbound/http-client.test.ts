@@ -107,7 +107,60 @@ describe("HttpOutboundClient", () => {
         },
         metadata: {}
       })
-    ).rejects.toThrowError(GenericHttpPluginError);
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.INTERNAL_ERROR,
+      retryable: false,
+      details: {
+        category: "remote-client",
+        operation: "POST /outbound/messages",
+        status: 400
+      }
+    } satisfies Partial<GenericHttpPluginError>);
+  });
+
+  it("classifies retryable network failures as network transport errors", async () => {
+    const client = new HttpOutboundClient(
+      {
+        baseUrl: "https://bridge.example.com",
+        apiKey: "test-api-key",
+        signingSecret: "test-signing-secret",
+        readTimeoutMillis: 1000,
+        maxRetries: 0
+      },
+      {
+        nowEpochSeconds: () => 1715958000,
+        nonceFactory: () => "nonce-005",
+        fetchImpl: async () => {
+          throw new TypeError("fetch failed");
+        }
+      }
+    );
+
+    await expect(
+      client.send({
+        requestId: "req_005",
+        accountId: "default",
+        conversation: {
+          conversationId: "room_123",
+          type: "dm"
+        },
+        threadId: null,
+        message: {
+          messageId: "msg_005",
+          text: "hello",
+          attachments: [],
+          replyToMessageId: null
+        },
+        metadata: {}
+      })
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.INTERNAL_ERROR,
+      retryable: true,
+      details: {
+        category: "network",
+        operation: "POST /outbound/messages"
+      }
+    } satisfies Partial<GenericHttpPluginError>);
   });
 
   it("sends file and image attachments in the outbound payload", async () => {

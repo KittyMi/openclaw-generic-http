@@ -9,5 +9,8 @@
 3. [02-faq.md](./02-faq.md)
 4. [03-local-dev.md](./03-local-dev.md)
 5. [04-next-phase-plan.md](./04-next-phase-plan.md)
+6. [05-compatibility-matrix.md](./05-compatibility-matrix.md)
+7. [06-release-checklist.md](./06-release-checklist.md)
+8. [07-release-notes-policy.md](./07-release-notes-policy.md)
 
 其余实现、协议和测试说明以源码、README 以及上游协作仓库中的协议文档为准。

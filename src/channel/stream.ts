@@ -6,6 +6,11 @@ import { signPayload } from "../security/signer.js";
 import { mapInboundMessage, type NormalizedInboundMessageEvent } from "../inbound/mapper.js";
 import { validateInboundMessage } from "../inbound/validator.js";
 import type { GenericHttpAccountConfig } from "../config/schema.js";
+import {
+  createInvalidResponseError,
+  createRemoteStatusError,
+  createTransportFailureError
+} from "../errors/http.js";
 
 export interface StreamPullOptions {
   fetchImpl?: typeof fetch;
@@ -14,6 +19,7 @@ export interface StreamPullOptions {
   requestIdFactory?: () => string;
   limit?: number;
   waitSeconds?: number;
+  signal?: AbortSignal;
 }
 
 export interface StreamAckOptions {
@@ -21,6 +27,7 @@ export interface StreamAckOptions {
   nowEpochSeconds?: () => number;
   nonceFactory?: () => string;
   requestIdFactory?: () => string;
+  signal?: AbortSignal;
 }
 
 export interface PulledInboundMessage {
@@ -150,11 +157,16 @@ export async function pullInboundMessages(
 
   const response = await resolvedOptions.fetchImpl(endpoint.toString(), {
     method: "GET",
-    headers
+    headers,
+    signal: options.signal
+  }).catch((error: unknown) => {
+    throw createTransportFailureError("GET /stream/inbound", error);
   });
   if (!response.ok) {
-    throw new Error(
-      `GET /stream/inbound failed with ${response.status} ${response.statusText}`
+    throw createRemoteStatusError(
+      "GET /stream/inbound",
+      response.status,
+      response.statusText
     );
   }
 
@@ -222,11 +234,16 @@ export async function ackInboundMessages(
   const response = await resolvedOptions.fetchImpl(endpoint.toString(), {
     method: "POST",
     headers,
-    body: rawBody
+    body: rawBody,
+    signal: options.signal
+  }).catch((error: unknown) => {
+    throw createTransportFailureError("POST /stream/acks", error);
   });
   if (!response.ok) {
-    throw new Error(
-      `POST /stream/acks failed with ${response.status} ${response.statusText}`
+    throw createRemoteStatusError(
+      "POST /stream/acks",
+      response.status,
+      response.statusText
     );
   }
 
@@ -240,7 +257,9 @@ export async function ackInboundMessages(
     payload.accountId !== accountId ||
     !Array.isArray(payload.ackedEventIds)
   ) {
-    throw new Error("POST /stream/acks returned an invalid response payload");
+    throw createInvalidResponseError("POST /stream/acks", {
+      accountId
+    });
   }
 
   return {

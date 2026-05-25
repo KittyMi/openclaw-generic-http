@@ -1,5 +1,10 @@
-import { ERROR_CODES } from "../errors/codes.js";
 import { GenericHttpPluginError } from "../errors/exceptions.js";
+import {
+  createConfigError,
+  createInvalidResponseError,
+  createRemoteStatusError,
+  createTransportFailureError
+} from "../errors/http.js";
 import type { GenericHttpAccountConfig } from "../config/schema.js";
 import { normalizeAttachment } from "../protocol/attachments.js";
 import { serializeProtocolObject } from "../protocol/serializer.js";
@@ -41,8 +46,7 @@ function createTimeoutSignal(timeoutMillis: number): AbortSignal {
 
 function buildOutboundEndpoint(baseUrl: string): string {
   if (baseUrl.trim() === "") {
-    throw new GenericHttpPluginError(
-      ERROR_CODES.INVALID_REQUEST,
+    throw createConfigError(
       "Outbound account config requires a non-empty baseUrl.",
       { field: "baseUrl" }
     );
@@ -72,9 +76,8 @@ function buildOutboundHeaders(
 
 function parseOutboundResult(value: unknown): OutboundMessageResult {
   if (typeof value !== "object" || value === null) {
-    throw new GenericHttpPluginError(
-      ERROR_CODES.INTERNAL_ERROR,
-      "Outbound endpoint returned a non-object response.",
+    throw createInvalidResponseError(
+      "POST /outbound/messages",
       { responseType: typeof value }
     );
   }
@@ -86,9 +89,8 @@ function parseOutboundResult(value: unknown): OutboundMessageResult {
     typeof result.providerMessageId !== "string" ||
     typeof result.acceptedAt !== "string"
   ) {
-    throw new GenericHttpPluginError(
-      ERROR_CODES.INTERNAL_ERROR,
-      "Outbound endpoint returned an invalid delivery result.",
+    throw createInvalidResponseError(
+      "POST /outbound/messages",
       {
         response: value
       }
@@ -121,15 +123,6 @@ function shouldRetry(error: unknown): boolean {
   }
 
   return false;
-}
-
-function createTransportError(
-  code: typeof ERROR_CODES.INTERNAL_ERROR | typeof ERROR_CODES.INVALID_REQUEST,
-  message: string,
-  details?: Record<string, unknown>,
-  retryable = false
-): GenericHttpPluginError {
-  return new GenericHttpPluginError(code, message, details, retryable);
 }
 
 /**
@@ -166,8 +159,7 @@ export class HttpOutboundClient implements OutboundClient {
       this.accountConfig.outboundSecret ?? this.accountConfig.signingSecret;
 
     if (signingSecret === undefined || signingSecret.trim() === "") {
-      throw new GenericHttpPluginError(
-        ERROR_CODES.INVALID_REQUEST,
+      throw createConfigError(
         "Outbound account config requires signingSecret or outboundSecret.",
         {
           accountId: request.accountId
@@ -202,14 +194,10 @@ export class HttpOutboundClient implements OutboundClient {
         });
 
         if (!response.ok) {
-          throw createTransportError(
-            ERROR_CODES.INTERNAL_ERROR,
-            `Outbound HTTP request failed with status ${response.status} ${response.statusText}.`,
-            {
-              status: response.status,
-              statusText: response.statusText
-            },
-            isRetryableStatus(response.status)
+          throw createRemoteStatusError(
+            "POST /outbound/messages",
+            response.status,
+            response.statusText
           );
         }
 
@@ -220,26 +208,19 @@ export class HttpOutboundClient implements OutboundClient {
             throw error;
           }
 
-          throw createTransportError(
-            ERROR_CODES.INTERNAL_ERROR,
-            "Outbound HTTP transport failed before a valid delivery result was received.",
-            {
-              cause:
-                error instanceof Error
-                  ? `${error.name}: ${error.message}`
-                  : String(error)
-            },
-            true
+          throw createTransportFailureError(
+            "POST /outbound/messages",
+            error
           );
         }
       }
     }
 
-    throw createTransportError(
-      ERROR_CODES.INTERNAL_ERROR,
-      "Outbound HTTP transport exhausted retries without returning a delivery result.",
-      { accountId: request.accountId },
-      true
+    throw createTransportFailureError(
+      "POST /outbound/messages",
+      new Error(
+        `Outbound HTTP transport exhausted retries without returning a delivery result for account ${request.accountId}.`
+      )
     );
   }
 }

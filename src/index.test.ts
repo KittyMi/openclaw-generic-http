@@ -629,16 +629,48 @@ describe("registerPlugin", () => {
       sender: {
         id: "openclaw-generic-http",
         type: "system"
+      },
+      message: {
+        metadata: {
+          errorCategory: "remote-server",
+          errorOperation: "POST /outbound/messages",
+          errorStatus: 503,
+          retryable: true
+        }
+      },
+      metadata: {
+        errorCategory: "remote-server",
+        errorOperation: "POST /outbound/messages",
+        errorStatus: 503,
+        retryable: true
       }
     });
     expect(JSON.parse(errorEventBodies[0] ?? "{}").message?.text).toContain(
       "generic-http dispatch error"
+    );
+    expect(JSON.parse(errorEventBodies[0] ?? "{}").message?.text).toContain(
+      "category=remote-server"
+    );
+    expect(JSON.parse(errorEventBodies[0] ?? "{}").message?.text).toContain(
+      "status=503"
+    );
+    expect(JSON.parse(errorEventBodies[0] ?? "{}").message?.text).toContain(
+      "retryable=true"
     );
     expect(
       statusPatches.some((patch) => patch.running === true)
     ).toBe(true);
     expect(
       statusPatches.some((patch) => patch.lastInboundAt !== undefined)
+    ).toBe(true);
+    expect(
+      statusPatches.some(
+        (patch) =>
+          typeof patch.lastError === "string" &&
+          patch.lastError.includes("category=remote-server") &&
+          patch.lastError.includes("status=503") &&
+          patch.lastError.includes("retryable=true")
+      )
     ).toBe(true);
     expect(
       statusPatches.some((patch) => patch.running === false)

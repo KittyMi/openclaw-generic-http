@@ -3,6 +3,11 @@ import { randomUUID } from "node:crypto";
 import type { GenericHttpAccountConfig } from "../config/schema.js";
 import { serializeProtocolObject } from "../protocol/serializer.js";
 import { signPayload } from "../security/signer.js";
+import {
+  createInvalidResponseError,
+  createRemoteStatusError,
+  createTransportFailureError
+} from "../errors/http.js";
 
 export interface ResolveRequest {
   accountId?: string | null;
@@ -130,10 +135,14 @@ export async function resolveRemotely(
     method: "POST",
     headers,
     body: rawBody
+  }).catch((error: unknown) => {
+    throw createTransportFailureError("POST /resolve", error);
   });
   if (!response.ok) {
-    throw new Error(
-      `POST /resolve failed with ${response.status} ${response.statusText}`
+    throw createRemoteStatusError(
+      "POST /resolve",
+      response.status,
+      response.statusText
     );
   }
 
@@ -142,7 +151,7 @@ export async function resolveRemotely(
     results?: Array<{ id?: string; name?: string; kind?: ResolveRequest["kind"] }>;
   };
   if (payload.success !== true || !Array.isArray(payload.results)) {
-    throw new Error("POST /resolve returned an invalid response payload");
+    throw createInvalidResponseError("POST /resolve");
   }
 
   return {

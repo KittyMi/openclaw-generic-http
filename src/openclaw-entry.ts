@@ -84,6 +84,10 @@ type ChannelAccountRuntimeLike = {
   lastStartAt?: number | null;
   lastStopAt?: number | null;
   lastError?: string | null;
+  lastErrorCategory?: string | null;
+  lastErrorRetryable?: boolean | null;
+  lastErrorOperation?: string | null;
+  lastErrorStatus?: number | null;
   lastInboundAt?: number | null;
   lastOutboundAt?: number | null;
   lastTransportActivityAt?: number | null;
@@ -340,6 +344,42 @@ function normalizeErrorName(error: unknown): string {
   return typeof error;
 }
 
+function readErrorDetailsValue(
+  error: unknown,
+  key: string
+): unknown {
+  if (
+    error instanceof GenericHttpPluginError &&
+    error.details &&
+    Object.prototype.hasOwnProperty.call(error.details, key)
+  ) {
+    return error.details[key];
+  }
+  return undefined;
+}
+
+function normalizeErrorCategory(error: unknown): string | null {
+  const value = readErrorDetailsValue(error, "category");
+  return typeof value === "string" && value.trim() !== "" ? value : null;
+}
+
+function normalizeErrorOperation(error: unknown): string | null {
+  const value = readErrorDetailsValue(error, "operation");
+  return typeof value === "string" && value.trim() !== "" ? value : null;
+}
+
+function normalizeErrorStatus(error: unknown): number | null {
+  const value = readErrorDetailsValue(error, "status");
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function normalizeErrorRetryable(error: unknown): boolean | null {
+  if (error instanceof GenericHttpPluginError) {
+    return error.retryable;
+  }
+  return null;
+}
+
 function buildRuntimeIssueSummary(context: GenericHttpStreamErrorContext): string {
   const suffix =
     context.phase === "dispatch" && context.eventId
@@ -347,7 +387,18 @@ function buildRuntimeIssueSummary(context: GenericHttpStreamErrorContext): strin
       : context.phase === "ack" && context.ackedEventIds
         ? ` acked=${context.ackedEventIds.join(",")}`
         : "";
-  return `generic-http ${context.phase} error:${suffix} ${normalizeErrorMessage(context.error)}`;
+  const category = normalizeErrorCategory(context.error);
+  const status = normalizeErrorStatus(context.error);
+  const retryable = normalizeErrorRetryable(context.error);
+  const structuredSuffix = [
+    category ? `category=${category}` : null,
+    status !== null ? `status=${status}` : null,
+    retryable !== null ? `retryable=${retryable}` : null
+  ]
+    .filter((value): value is string => value !== null)
+    .join(" ");
+  const prefix = structuredSuffix === "" ? "" : ` ${structuredSuffix}`;
+  return `generic-http ${context.phase} error:${suffix}${prefix} ${normalizeErrorMessage(context.error)}`;
 }
 
 function buildRuntimeIssueHeaders(params: {
@@ -412,25 +463,33 @@ async function reportRuntimeIssueToPlatform(params: {
       name: "Generic HTTP Plugin",
       type: "system"
     },
-    message: {
-      messageId,
-      text: buildRuntimeIssueSummary(params.issue),
-      metadata: {
-        phase: params.issue.phase,
-        errorName: normalizeErrorName(params.issue.error),
-        errorMessage: normalizeErrorMessage(params.issue.error),
-        sourceEventId: params.issue.eventId ?? normalizedEvent?.eventId ?? null,
-        ackedEventIds: params.issue.ackedEventIds ?? [],
-        pluginAccountId: params.ctx.accountId
-      }
-    },
+      message: {
+        messageId,
+        text: buildRuntimeIssueSummary(params.issue),
+        metadata: {
+          phase: params.issue.phase,
+          errorName: normalizeErrorName(params.issue.error),
+          errorMessage: normalizeErrorMessage(params.issue.error),
+          errorCategory: normalizeErrorCategory(params.issue.error),
+          errorOperation: normalizeErrorOperation(params.issue.error),
+          errorStatus: normalizeErrorStatus(params.issue.error),
+          retryable: normalizeErrorRetryable(params.issue.error),
+          sourceEventId: params.issue.eventId ?? normalizedEvent?.eventId ?? null,
+          ackedEventIds: params.issue.ackedEventIds ?? [],
+          pluginAccountId: params.ctx.accountId
+        }
+      },
     occurredAt,
     idempotencyKey: `plugin-error:${params.ctx.accountId}:${params.issue.phase}:${params.issue.eventId ?? requestId}`,
     metadata: {
       provider: CHANNEL_ID,
       source: "openclaw-generic-http",
       phase: params.issue.phase,
-      errorName: normalizeErrorName(params.issue.error)
+      errorName: normalizeErrorName(params.issue.error),
+      errorCategory: normalizeErrorCategory(params.issue.error),
+      errorOperation: normalizeErrorOperation(params.issue.error),
+      errorStatus: normalizeErrorStatus(params.issue.error),
+      retryable: normalizeErrorRetryable(params.issue.error)
     }
   };
   const rawBody = serializeProtocolObject(payload);
@@ -1010,6 +1069,10 @@ function buildOpenClawChannelPlugin() {
         lastStartAt: null,
         lastStopAt: null,
         lastError: null,
+        lastErrorCategory: null,
+        lastErrorRetryable: null,
+        lastErrorOperation: null,
+        lastErrorStatus: null,
         lastInboundAt: null,
         lastOutboundAt: null,
         lastTransportActivityAt: null
@@ -1041,6 +1104,10 @@ function buildOpenClawChannelPlugin() {
           lastStartAt: runtime?.lastStartAt ?? null,
           lastStopAt: runtime?.lastStopAt ?? null,
           lastError: runtime?.lastError ?? null,
+          lastErrorCategory: runtime?.lastErrorCategory ?? null,
+          lastErrorRetryable: runtime?.lastErrorRetryable ?? null,
+          lastErrorOperation: runtime?.lastErrorOperation ?? null,
+          lastErrorStatus: runtime?.lastErrorStatus ?? null,
           lastInboundAt: runtime?.lastInboundAt ?? null,
           lastOutboundAt: runtime?.lastOutboundAt ?? null,
           lastTransportActivityAt: runtime?.lastTransportActivityAt ?? null,
@@ -1065,7 +1132,11 @@ function buildOpenClawChannelPlugin() {
                 connected: true,
                 lastInboundAt: activityAt,
                 lastTransportActivityAt: Date.now(),
-                lastError: null
+                lastError: null,
+                lastErrorCategory: null,
+                lastErrorRetryable: null,
+                lastErrorOperation: null,
+                lastErrorStatus: null
               });
               await dispatchInboundEventToOpenClaw({ ctx, event });
             },
@@ -1075,7 +1146,11 @@ function buildOpenClawChannelPlugin() {
               ctx.setStatus({
                 accountId: ctx.accountId,
                 connected: false,
-                lastError: message
+                lastError: message,
+                lastErrorCategory: normalizeErrorCategory(error),
+                lastErrorRetryable: normalizeErrorRetryable(error),
+                lastErrorOperation: normalizeErrorOperation(error),
+                lastErrorStatus: normalizeErrorStatus(error)
               });
               void reportRuntimeIssueToPlatform({
                 ctx,
@@ -1096,7 +1171,11 @@ function buildOpenClawChannelPlugin() {
           running: true,
           connected: true,
           lastStartAt: Date.now(),
-          lastError: null
+          lastError: null,
+          lastErrorCategory: null,
+          lastErrorRetryable: null,
+          lastErrorOperation: null,
+          lastErrorStatus: null
         });
 
         try {

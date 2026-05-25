@@ -59,7 +59,12 @@ describe("createGenericHttpChannelLifecycle", () => {
     expect(dispatchedEventIds).toEqual(["evt_001"]);
     expect(lifecycle.plugin.streamIngressStatus()).toEqual({
       running: false,
-      accountId: null
+      accountId: null,
+      activeAccountIds: [],
+      consecutiveFailures: 0,
+      nextRetryDelayMillis: 0,
+      circuitState: "closed",
+      perAccount: {}
     });
   });
 

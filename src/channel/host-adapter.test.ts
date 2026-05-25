@@ -65,7 +65,12 @@ describe("createGenericHttpHostAdapter", () => {
     expect(dispatchedEventIds).toEqual(["evt_host_001"]);
     expect(adapter.plugin.streamIngressStatus()).toEqual({
       running: false,
-      accountId: null
+      accountId: null,
+      activeAccountIds: [],
+      consecutiveFailures: 0,
+      nextRetryDelayMillis: 0,
+      circuitState: "closed",
+      perAccount: {}
     });
   });
 

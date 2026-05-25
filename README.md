@@ -37,7 +37,7 @@
 当前仍未完成的平台级能力：
 
 - 还没有覆盖多个 OpenClaw 版本的兼容矩阵
-- 只有基础 CI 和手动发布流程，尚未形成完整发布自动化
+- 已有 CI 与手动触发的 npm 发布 workflow，但尚未形成完整的版本发布治理与自动化 release 流程
 - 只有最小真实 bridge 回归脚本，尚未形成更完整的端到端样例集
 - 多账号、复杂附件和更细粒度错误映射仍是后续增强项
 
@@ -175,6 +175,9 @@ npm run test:e2e
 - 常见问题与限制：[docs/02-faq.md](./docs/02-faq.md)
 - 本地联调：[docs/03-local-dev.md](./docs/03-local-dev.md)
 - 下一阶段规划：[docs/04-next-phase-plan.md](./docs/04-next-phase-plan.md)
+- 兼容矩阵：[docs/05-compatibility-matrix.md](./docs/05-compatibility-matrix.md)
+- 发布 Checklist：[docs/06-release-checklist.md](./docs/06-release-checklist.md)
+- 版本发布说明策略：[docs/07-release-notes-policy.md](./docs/07-release-notes-policy.md)
 - 文档目录：[docs/README.md](./docs/README.md)
 
 ## 开源协作

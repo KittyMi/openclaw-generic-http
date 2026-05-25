@@ -3,6 +3,11 @@ import { randomUUID } from "node:crypto";
 import type { GenericHttpAccountConfig } from "../config/schema.js";
 import { serializeProtocolObject } from "../protocol/serializer.js";
 import { signPayload } from "../security/signer.js";
+import {
+  createInvalidResponseError,
+  createRemoteStatusError,
+  createTransportFailureError
+} from "../errors/http.js";
 
 export interface ProbeCheckResult {
   name: string;
@@ -123,11 +128,17 @@ async function runRemoteHealthCheck(
     const response = await options.fetchImpl(endpoint.toString(), {
       method: "GET",
       headers
+    }).catch((error: unknown) => {
+      throw createTransportFailureError("GET /health", error);
     });
     if (!response.ok) {
       return buildErrorCheck(
         "health",
-        `GET /health failed with ${response.status} ${response.statusText}`
+        createRemoteStatusError(
+          "GET /health",
+          response.status,
+          response.statusText
+        ).message
       );
     }
 
@@ -139,7 +150,7 @@ async function runRemoteHealthCheck(
     if (payload.success !== true || payload.status !== "UP") {
       return buildErrorCheck(
         "health",
-        "GET /health returned an invalid success/status payload"
+        createInvalidResponseError("GET /health").message
       );
     }
 
@@ -151,7 +162,7 @@ async function runRemoteHealthCheck(
   } catch (error) {
     return buildErrorCheck(
       "health",
-      error instanceof Error ? error.message : String(error)
+      createTransportFailureError("GET /health", error).message
     );
   }
 }
@@ -181,11 +192,17 @@ async function runRemoteProbeCheck(
       method: "POST",
       headers,
       body: rawBody
+    }).catch((error: unknown) => {
+      throw createTransportFailureError("POST /probe", error);
     });
     if (!response.ok) {
       return buildErrorCheck(
         "probe-api",
-        `POST /probe failed with ${response.status} ${response.statusText}`
+        createRemoteStatusError(
+          "POST /probe",
+          response.status,
+          response.statusText
+        ).message
       );
     }
 
@@ -197,7 +214,7 @@ async function runRemoteProbeCheck(
     if (payload.success !== true || typeof payload.status !== "string") {
       return buildErrorCheck(
         "probe-api",
-        "POST /probe returned an invalid success/status payload"
+        createInvalidResponseError("POST /probe").message
       );
     }
 
@@ -214,7 +231,7 @@ async function runRemoteProbeCheck(
   } catch (error) {
     return buildErrorCheck(
       "probe-api",
-      error instanceof Error ? error.message : String(error)
+      createTransportFailureError("POST /probe", error).message
     );
   }
 }
