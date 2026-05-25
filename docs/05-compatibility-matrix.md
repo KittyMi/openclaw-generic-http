@@ -15,7 +15,7 @@
 
 | 项目 | 当前基线 | 说明 |
 | --- | --- | --- |
-| 插件版本 | `openclaw-generic-http 0.1.5` | 当前 `package.json` 发布号 |
+| 插件版本 | `openclaw-generic-http 0.1.6` | 当前 `package.json` 发布号 |
 | OpenClaw 声明支持范围 | `2026.5.x` | 当前 README 正式声明 |
 | OpenClaw 已验证版本 | `2026.5.12 (f066dd2)` | 当前本机验证记录 |
 | Node.js 引擎要求 | `>=22.16.0` | 当前 `package.json` `engines.node` |
@@ -76,7 +76,7 @@
 
 当前最稳妥的对外口径是：
 
-- 插件正式发布基线为 `openclaw-generic-http 0.1.5`
+- 插件正式发布基线为 `openclaw-generic-http 0.1.6`
 - 当前声明支持 OpenClaw Desktop `2026.5.x`
 - 当前明确实机验证版本为 `2026.5.12 (f066dd2)`
 - 当前已验证 Node.js `22.x` 与 `24.x`

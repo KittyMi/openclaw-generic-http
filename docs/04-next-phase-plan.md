@@ -94,7 +94,7 @@
 
 当前插件仓库进展已明显超过本文初始版本：
 
-1. `C1` 已完成并进入 `0.1.4` / `0.1.5` 基线：
+1. `C1` 已完成并进入 `0.1.4` / `0.1.6` 基线：
    - 已支持图片、文件、文本 + 附件、多附件混合映射
    - inbound `attachments[]` 已注入 OpenClaw runtime 上下文
    - `scripts/e2e-bridge-regression.mjs` 已覆盖最小真实 bridge 回归
