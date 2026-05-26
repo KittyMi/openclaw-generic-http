@@ -143,11 +143,20 @@ async function main() {
 
     if (request.method === "POST" && url.pathname === "/stream/acks") {
       const payload = JSON.parse(rawBody);
-      state.ackedEventIds.push(...payload.eventIds);
+      if (Array.isArray(payload.eventIds) && payload.eventIds.length > 0) {
+        state.ackedEventIds.push(...payload.eventIds);
+      } else if (typeof payload.lastEventId === "string" && payload.lastEventId.length > 0) {
+        state.ackedEventIds.push(payload.lastEventId);
+      }
       sendJson(response, 200, {
         success: true,
         accountId: payload.accountId,
-        ackedEventIds: payload.eventIds
+        ackedEventIds:
+          Array.isArray(payload.eventIds) && payload.eventIds.length > 0
+            ? payload.eventIds
+            : payload.lastEventId
+              ? [payload.lastEventId]
+              : []
       });
       return;
     }
