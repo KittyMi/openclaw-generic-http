@@ -18,12 +18,12 @@
 npm test
 ```
 
-配置文件：[vitest.config.ts](../vitest.config.ts)，Node 环境，匹配 `src/**/*.test.ts`。
+配置文件：[vitest.config.ts](../vitest.config.ts)，Node 环境，匹配 `tests/**/*.test.ts`。
 
 ### 2.2 测试文件
 
-```
-src/
+```text
+tests/
   channel/
     host-adapter.test.ts   ← HostAdapter 生命周期与事件注入
     lifecycle.test.ts      ← 插件启动/停止生命周期
@@ -65,7 +65,7 @@ describe("功能模块名", () => {
 
 要求：
 
-- 测试文件放在对应源码同级目录，命名为 `<module>.test.ts`
+- 测试文件放在 `tests/` 下对应子目录，命名为 `<module>.test.ts`
 - 使用 `describe` 组织测试套件，`it` 描述具体行为
 - 优先用 mock（`vi.fn()` / `vi.spyOn()`）隔离外部依赖，不发起真实网络请求
 

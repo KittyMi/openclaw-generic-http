@@ -5,7 +5,7 @@ import defaultPluginEntry, {
   openClawGenericHttpChannelPlugin,
   register,
   registerPlugin
-} from "./index.js";
+} from "../src/index.js";
 
 describe("registerPlugin", () => {
   it("returns a host-oriented plugin registration shape", () => {

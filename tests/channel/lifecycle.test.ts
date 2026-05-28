@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createGenericHttpChannelLifecycle } from "./lifecycle.js";
+import { createGenericHttpChannelLifecycle } from "../../src/channel/lifecycle.js";
 
 describe("createGenericHttpChannelLifecycle", () => {
   it("dispatches normalized inbound events through the host lifecycle", async () => {

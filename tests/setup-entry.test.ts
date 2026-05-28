@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import genericHttpSetupEntry, { registerSetup } from "./setup-entry.js";
+import genericHttpSetupEntry, { registerSetup } from "../src/setup-entry.js";
 
 describe("registerSetup", () => {
   it("returns structured setup metadata for bridge and stream ingress", () => {

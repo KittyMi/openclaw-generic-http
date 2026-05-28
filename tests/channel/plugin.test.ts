@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createGenericHttpChannelPlugin } from "./plugin.js";
+import { createGenericHttpChannelPlugin } from "../../src/channel/plugin.js";
 
 describe("createGenericHttpChannelPlugin", () => {
   it("should include long-poll waitSeconds when pulling inbound messages", async () => {

@@ -1,4 +1,5 @@
 src/
+tests/
 dist/**/*.map
 coverage/
 node_modules/

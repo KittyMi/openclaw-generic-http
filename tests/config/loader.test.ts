@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { GenericHttpPluginError } from "../errors/exceptions.js";
-import { DEFAULT_ACCOUNT_ID, loadConfig } from "./loader.js";
+import { GenericHttpPluginError } from "../../src/errors/exceptions.js";
+import { DEFAULT_ACCOUNT_ID, loadConfig } from "../../src/config/loader.js";
 
 describe("loadConfig", () => {
   it("keeps an unconfigured plugin runtime empty instead of materializing a default account", () => {

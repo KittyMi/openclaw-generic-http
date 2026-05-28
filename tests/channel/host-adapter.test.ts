@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createGenericHttpHostAdapter } from "./host-adapter.js";
+import { createGenericHttpHostAdapter } from "../../src/channel/host-adapter.js";
 
 describe("createGenericHttpHostAdapter", () => {
   it("exposes host lifecycle methods on top of the plugin runtime", async () => {

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { GenericHttpPluginError } from "../errors/exceptions.js";
-import { ERROR_CODES } from "../errors/codes.js";
-import { HttpOutboundClient } from "./http-client.js";
+import { GenericHttpPluginError } from "../../src/errors/exceptions.js";
+import { ERROR_CODES } from "../../src/errors/codes.js";
+import { HttpOutboundClient } from "../../src/outbound/http-client.js";
 
 describe("HttpOutboundClient", () => {
   it("retries retryable HTTP failures and eventually succeeds", async () => {
