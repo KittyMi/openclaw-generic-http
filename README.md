@@ -1,113 +1,141 @@
-# openclaw-generic-http
+# @kittymi/openclaw-generic-http
 
-`openclaw-generic-http` 是 OpenClaw 的 `generic-http` channel 插件。
+[![npm version](https://img.shields.io/npm/v/@kittymi/openclaw-generic-http)](https://www.npmjs.com/package/@kittymi/openclaw-generic-http)
+[![license](https://img.shields.io/npm/l/@kittymi/openclaw-generic-http)](./LICENSE)
+[![node](https://img.shields.io/node/v/@kittymi/openclaw-generic-http)](https://nodejs.org/)
 
-它负责把 OpenClaw 接到一个遵循 `generic-http protocol v1` 的 bridge / relay / platform 上：
+OpenClaw 的 `generic-http` channel 插件。通过 HTTP bridge/relay 将第三方系统接入 OpenClaw，采用 webhook ingress + stream pull 拓扑。
 
-- 通过 `GET /stream/inbound` 消费入站事件
-- 通过 `POST /stream/acks` 确认已处理事件
-- 通过 `POST /outbound/messages` 发送 OpenClaw 出站消息
-- 处理配置、安全签名、会话路由和宿主生命周期适配
+## 功能特性
 
-## 这个插件适不适合你
+### Channel 能力
 
-适合：
+| 能力 | 状态 | 说明 |
+| --- | --- | --- |
+| `health` | 已支持 | 桥接健康检查 |
+| `probe` | 已支持 | 实例可达性与配置诊断 |
+| `resolve` | 已支持 | 会话/用户/群组目录解析 |
+| `capabilities` | 已支持 | 能力声明与协商 |
+| 入站消息 (webhook + stream) | 已支持 | 第三方 webhook 写入 → 插件 stream 拉取 |
+| 出站消息 | 已支持 | OpenClaw 回复 → 插件发往 bridge |
+| 流式长轮询 | 已支持 | `waitSeconds` 长轮询 + `lastEventId` cursor ack |
 
-- OpenClaw 运行在本地或内网
-- 第三方系统通过 webhook 把事件写入 bridge / relay
-- OpenClaw 通过 stream 主动拉取入站事件
-- 当前目标是先打通文本、图片、文件和基础会话闭环
+### 消息类型
 
-不适合：
+| 类型 | 入站 | 出站 |
+| --- | --- | --- |
+| 纯文本 | 支持 | 支持 |
+| 单图片附件 | 支持 | 支持 |
+| 单文件附件 | 支持 | 支持 |
+| 文本 + 图片 | 支持 | 支持 |
+| 文本 + 文件 | 支持 | 支持 |
+| 多附件混合 | 支持 | 支持 |
 
-- 需要插件自己直接暴露公网入站地址
-- 一开始就要求复杂卡片、多租户工作台、重型消息总线
-- 需要已经覆盖完整 OpenClaw 多版本兼容矩阵的成品插件
+### 安全
 
-## 发布定位
+| 机制 | 状态 | 说明 |
+| --- | --- | --- |
+| HMAC-SHA256 签名 | 已支持 | 出站请求签名 + 入站 webhook 验签 |
+| Nonce 防重放 | 已支持 | 基于内存/LRU 的 nonce 去重 |
+| API Key 认证 | 已支持 | 共享凭据，可选独立 inbound/outbound secret |
+| 幂等键 | 已支持 | `idempotencyKey` 防重复投递 |
 
-当前版本已经具备 `0.1.x` 首次独立发布所需的最小闭环：
+### 运行时
 
-- `webhook + stream` ingress 运行时
-- OpenClaw 宿主注册入口与 host adapter
-- `health / probe / resolve / capabilities`
-- 文本、图片、文件与文本+附件混合消息规范化
-- 构建、测试与 npm 打包检查
+| 特性 | 状态 | 说明 |
+| --- | --- | --- |
+| 多账号并行 | 已支持 | 多 `accountId` 独立 stream 连接 |
+| 自动重连 | 已支持 | stream 断开后退避重试 |
+| 结构化错误上报 | 已支持 | plugin pull/dispatch/ack 异常带 `errorCode` |
+| 配置诊断 | 已支持 | `readyForStream` / `readyForOutbound` 状态暴露 |
 
-当前仍未完成的平台级能力：
+## 架构定位
 
-- 还没有覆盖多个 OpenClaw 版本的兼容矩阵
-- 已有 CI 与手动触发的 npm 发布 workflow，但尚未形成完整的版本发布治理与自动化 release 流程
-- 只有最小真实 bridge 回归脚本，尚未形成更完整的端到端样例集
-- 多账号、复杂附件和更细粒度错误映射仍是后续增强项
+```
+第三方系统                Bridge/Relay              本插件                  OpenClaw
+─────────                ────────────              ──────                  ────────
+webhook ──→ POST /webhooks/inbound/messages ──→ GET /stream/inbound ──→ channel event
+                                              ←── POST /stream/acks  ←──
+         ←── POST /outbound/messages         ←── outbound send       ←── agent reply
+```
 
-结论：
-
-- 适合作为 `0.1.x` 预览版公开发布
-- 还不应宣称为“生产级已完全收口”
+- 本插件**不暴露公网端口**，入站通过 stream pull 主动拉取
+- 第三方系统**不直连 OpenClaw**，通过 bridge/relay 写入 webhook
+- 签名、验签、路由映射均在插件侧完成，**不依赖 OpenClaw 内部实现**
 
 ## 兼容性
 
-当前声明的支持范围：
+| 维度 | 基线 | 状态 |
+| --- | --- | --- |
+| 插件版本 | `0.1.6` | 当前发布 |
+| OpenClaw | `2026.5.x` | 声明支持线 |
+| OpenClaw | `2026.5.12 (f066dd2)` | 实机验证 |
+| Node.js | `>=22.16.0` | 引擎要求 |
+| Node.js | `22.x` / `24.x` | CI + 本地验证 |
+| 协议 | `generic-http protocol v1` | 对齐基线 |
+| 平台 | `clawbridge-platform 0.1.2` | 共享联调基线 |
 
-- OpenClaw Desktop `2026.5.x`
-- Node.js `>=22.16.0`
+不兼容范围：
+- OpenClaw `2026.4.x` 及更早版本 — 未验证，不承诺兼容
+- OpenClaw `2026.6.x` 及更高版本 — 未验证，后续单独评估
 
-当前已验证环境：
-
-- OpenClaw `2026.5.12 (f066dd2)`
-
-| Item | Status |
-| --- | --- |
-| OpenClaw Desktop `2026.5.12` | Verified locally |
-| OpenClaw Desktop `2026.5.x` | Supported release line |
-| Node.js `22.x` | Verified in local/dev and CI |
-| Node.js `24.x` | Verified in local/dev and CI |
-
-说明：
-
-- `2026.5.x` 是当前 `0.1.6` 发布线声明支持的 OpenClaw 版本范围
-- 当前只在 `2026.5.12` 做过实际本机验证
-- 对 `2026.4.x` 及更早版本、以及 `2026.6.x` 及更高版本，当前不承诺兼容
+详见 [兼容矩阵文档](./docs/05-compatibility-matrix.md)。
 
 ## 快速开始
 
-1. 安装插件：
+```bash
+# 1. 安装
+openclaw plugins install @kittymi/openclaw-generic-http
+
+# 2. 在 openclaw.json 中添加配置（参见下方配置参考）
+
+# 3. 验证
+openclaw channels list --all
+openclaw channels status --channel generic-http
+```
+
+### 最小验证路径
+
+```bash
+# 确认插件与 bridge 互通
+1. bridge GET /health
+2. bridge POST /probe
+3. 插件 POST /outbound/messages
+4. 第三方写入 POST /webhooks/inbound/messages
+5. 插件 stream 消费并 ack
+```
+
+也可直接运行插件自带的 E2E 回归脚本：
+
+```bash
+npm run test:e2e
+```
+
+## 安装
+
+**推荐：OpenClaw 插件机制**
 
 ```bash
 openclaw plugins install @kittymi/openclaw-generic-http
 ```
 
-2. 在 `openclaw.json` 中写入 `channels.generic-http`
-3. 执行 `openclaw channels list --all`
-4. 执行 `openclaw channels status --channel generic-http`
-5. 验证目标 bridge 的 `health / probe / stream / outbound` 链路
-
-当前更推荐通过 OpenClaw 插件机制安装，而不是只做全局 npm 安装。
-
-## 安装方式
-
-推荐方式：
-
-```bash
-openclaw plugins install @kittymi/openclaw-generic-http
-```
-
-如果你在本地调试插件源码：
+**本地调试：**
 
 ```bash
 openclaw plugins link /path/to/openclaw-generic-http
 ```
 
-只做全局安装也可以，但不是当前首选方式：
+**全局安装（备用，非首选）：**
 
 ```bash
 npm install -g @kittymi/openclaw-generic-http
 ```
 
-## 配置示例
+详细说明见 [安装与配置文档](./docs/01-installation-guide.md)。
 
-最小单账号配置：
+## 配置参考
+
+### 最小配置
 
 ```json
 {
@@ -127,71 +155,99 @@ npm install -g @kittymi/openclaw-generic-http
 }
 ```
 
-配置规则：
+### 完整字段
 
-- `defaultAccount` 必须指向 `accounts` 里真实存在的账号键
+| 字段 | 类型 | 必填 | 默认值 | 说明 |
+| --- | --- | --- | --- | --- |
+| `enabled` | boolean | 是 | `false` | 是否启用 channel |
+| `defaultAccount` | string | 是 | — | 默认账号，必须存在于 `accounts` |
+| `accounts` | object | 是 | — | 按 `accountId` 索引的账号配置 |
+
+### 账号配置字段
+
+| 字段 | 类型 | 必填 | 默认值 | 说明 |
+| --- | --- | --- | --- | --- |
+| `baseUrl` | string (URI) | 是 | — | bridge/relay 根地址 |
+| `apiKey` | string | 否 | — | 共享 API 认证凭据 |
+| `signingSecret` | string | 否 | — | stream/probe/outbound 签名密钥 |
+| `inboundSecret` | string | 否 | — | 专用入站 webhook 签名密钥 |
+| `outboundSecret` | string | 否 | — | 专用出站签名密钥 |
+| `connectTimeoutMillis` | number | 否 | `5000` | HTTP 连接超时（毫秒） |
+| `readTimeoutMillis` | number | 否 | `10000` | HTTP 读取超时（毫秒） |
+| `maxRetries` | number | 否 | `0` | 可重试出站失败的最大重试次数 |
+
+### 配置约束
+
+- `defaultAccount` 必须指向 `accounts` 里的真实键名
 - 一个账号配置对应一个平台 `accountId`
-- 不要再把示例账号统一写成 `default` 再到线上手改
+- 不建议多个 OpenClaw 节点复用同一个账号配置
+- 不要使用 `default` 等占位名作为正式账号键
 
-本地联调样例见 [dev-config/README.md](./dev-config/README.md) 和 [dev-config/openclaw-generic-http.local.json](./dev-config/openclaw-generic-http.local.json)。
+## 对接的 Bridge API
 
-## 最小验证路径
+插件对接遵循 `generic-http protocol v1` 的 bridge/relay，使用以下端点：
 
-建议第一次接入按这个顺序验证：
+| 端点 | 方法 | 用途 | 调用方 |
+| --- | --- | --- | --- |
+| `/health` | GET | 健康检查 | 插件 |
+| `/probe` | POST | 实例可达性与配置诊断 | 插件 |
+| `/resolve` | POST | 会话/用户/群组目录查询 | 插件 |
+| `/capabilities` | POST | 能力声明与协商 | 插件 |
+| `/webhooks/inbound/messages` | POST | 入站消息写入 | 第三方系统 |
+| `/stream/inbound` | GET | 入站事件流式拉取 (SSE) | 插件 |
+| `/stream/acks` | POST | 入站事件确认 | 插件 |
+| `/outbound/messages` | POST | 出站消息投递 | 插件 |
 
-1. `openclaw channels status --channel generic-http`
-2. bridge `GET /health`
-3. bridge `POST /probe`
-4. 插件 `POST /outbound/messages`
-5. 第三方系统写 `POST /webhooks/inbound/messages`
-6. 插件消费 `GET /stream/inbound` 和 `POST /stream/acks`
-
-如果只想快速验证插件和最小 bridge 是否真实互通，可以直接运行：
+## 本地开发
 
 ```bash
+# 安装依赖
+npm install
+
+# 构建
+npm run build
+
+# 运行单元测试
+npm test
+
+# 打包前检查
+npm run pack:check
+
+# 端到端回归（需本地 bridge）
 npm run test:e2e
 ```
+
+详细说明见 [本地联调文档](./docs/03-local-dev.md)。
 
 ## 已知限制
 
-- 当前正式兼容声明只覆盖 OpenClaw Desktop `2026.5.x`
-- 当前只在 `2026.5.12 (f066dd2)` 做过本机验证
-- `openclaw channels add --channel ...` 仍主要依赖内置静态 catalog，第三方 channel 不一定直接出现在交互式枚举里
-- 当前重点仍是最小闭环，不是全量平台能力
+- 正式声明兼容仅覆盖 OpenClaw Desktop `2026.5.x`
+- 实机验证仅针对 `2026.5.12 (f066dd2)` 完成
+- `openclaw channels add --channel ...` 依赖静态 catalog，第三方 channel 不一定出现在交互式枚举中
+- 尚未覆盖多 OpenClaw 版本的兼容矩阵
+- 富媒体仅限于图片和文件附件，不含卡片、按钮等交互组件
+- 多账号并行策略和重连退避仍待进一步优化（见 [下一阶段规划](./docs/04-next-phase-plan.md)）
 
-## 本地开发与发布前检查
+## 文档索引
 
-```bash
-npm install
-npm run build
-npm test
-npm run pack:check
-npm run test:e2e
-```
+| 文档 | 说明 |
+| --- | --- |
+| [安装与配置](./docs/01-installation-guide.md) | 安装方式、最小配置、首次联调 |
+| [常见问题](./docs/02-faq.md) | FAQ 与故障排查 |
+| [本地联调](./docs/03-local-dev.md) | 本地开发与联调环境搭建 |
+| [下一阶段规划](./docs/04-next-phase-plan.md) | `0.2.x` 开发路线 |
+| [兼容矩阵](./docs/05-compatibility-matrix.md) | 版本兼容声明与对齐基线 |
+| [发布 Checklist](./docs/06-release-checklist.md) | 发布前检查项 |
+| [版本发布说明策略](./docs/07-release-notes-policy.md) | CHANGELOG 与发布说明规范 |
 
-## 文档
-
-- 安装与配置：[docs/01-installation-guide.md](./docs/01-installation-guide.md)
-- 常见问题与限制：[docs/02-faq.md](./docs/02-faq.md)
-- 本地联调：[docs/03-local-dev.md](./docs/03-local-dev.md)
-- 下一阶段规划：[docs/04-next-phase-plan.md](./docs/04-next-phase-plan.md)
-- 兼容矩阵：[docs/05-compatibility-matrix.md](./docs/05-compatibility-matrix.md)
-- 发布 Checklist：[docs/06-release-checklist.md](./docs/06-release-checklist.md)
-- 版本发布说明策略：[docs/07-release-notes-policy.md](./docs/07-release-notes-policy.md)
-- 文档目录：[docs/README.md](./docs/README.md)
+上游协作仓库：
+- [clawbridge-platform](https://github.com/KittyMi/openclaw-http-bridge) — 平台协议文档与共享测试向量
 
 ## 开源协作
 
-当前仓库使用 [MIT License](./LICENSE)。
+- [MIT License](./LICENSE)
+- [贡献说明](./CONTRIBUTING.md)
+- [行为准则](./CODE_OF_CONDUCT.md)
+- [安全上报](./SECURITY.md)
 
-社区协作入口：
-
-- 贡献说明：[CONTRIBUTING.md](./CONTRIBUTING.md)
-- 行为准则：[CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
-- 安全上报：[SECURITY.md](./SECURITY.md)
-
-如果你要提交代码或文档改动，建议优先：
-
-1. 先确认是否影响协议、签名、路由或 OpenClaw 兼容范围
-2. 再执行 `npm run build`、`npm test`、`npm run pack:check`、`npm run test:e2e`
-3. 最后同步更新 README、CHANGELOG 或示例配置
+提交改动前请执行 `npm run build && npm test && npm run pack:check && npm run test:e2e`。
