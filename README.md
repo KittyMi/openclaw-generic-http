@@ -4,6 +4,8 @@
 [![license](https://img.shields.io/npm/l/@kittymi/openclaw-generic-http)](./LICENSE)
 [![node](https://img.shields.io/node/v/@kittymi/openclaw-generic-http)](https://nodejs.org/)
 
+> [English](./README-en.md)
+
 OpenClaw 的 `generic-http` channel 插件。通过 HTTP bridge/relay 将第三方系统接入 OpenClaw，采用 webhook ingress + stream pull 拓扑。
 
 ## 功能特性
