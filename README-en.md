@@ -53,7 +53,7 @@ An OpenClaw `generic-http` channel plugin. Connects third-party systems to OpenC
 
 ## Architecture
 
-```
+```text
 Third-party System       Bridge/Relay              This Plugin             OpenClaw
 ─────────────────       ────────────              ───────────             ────────
 webhook ──→ POST /webhooks/inbound/messages ──→ GET /stream/inbound ──→ channel event
@@ -78,6 +78,7 @@ webhook ──→ POST /webhooks/inbound/messages ──→ GET /stream/inbound 
 | Platform | `clawbridge-platform 0.1.2` | Shared integration baseline |
 
 Not supported:
+
 - OpenClaw `2026.4.x` and earlier — not verified, no compatibility commitment
 - OpenClaw `2026.6.x` and later — not yet verified, to be evaluated separately
 
@@ -98,7 +99,7 @@ openclaw channels status --channel generic-http
 
 ### Minimum Verification Path
 
-```
+```text
 1. bridge GET /health
 2. bridge POST /probe
 3. Plugin POST /outbound/messages
@@ -114,19 +115,19 @@ npm run test:e2e
 
 ## Installation
 
-**Recommended: OpenClaw plugin mechanism**
+### Recommended: OpenClaw plugin mechanism
 
 ```bash
 openclaw plugins install @kittymi/openclaw-generic-http
 ```
 
-**Local development:**
+### Local development
 
 ```bash
 openclaw plugins link /path/to/openclaw-generic-http
 ```
 
-**Global install (alternative, not preferred):**
+### Global install (alternative, not preferred)
 
 ```bash
 npm install -g @kittymi/openclaw-generic-http
@@ -236,12 +237,14 @@ See [Local Development Guide](./docs/03-local-dev.md) for details.
 | [Installation Guide](./docs/01-installation-guide.md) | Install methods, minimal config, first-time integration |
 | [FAQ](./docs/02-faq.md) | Frequently asked questions and troubleshooting |
 | [Local Development](./docs/03-local-dev.md) | Local dev environment and integration setup |
+| [Testing](./docs/08-testing.md) | Test layers, how to run and add tests |
 | [Next Phase Plan](./docs/04-next-phase-plan.md) | `0.2.x` roadmap |
 | [Compatibility Matrix](./docs/05-compatibility-matrix.md) | Version compatibility and alignment baseline |
 | [Release Checklist](./docs/06-release-checklist.md) | Pre-release verification items |
 | [Release Notes Policy](./docs/07-release-notes-policy.md) | CHANGELOG and release note conventions |
 
 Upstream collaboration:
+
 - [clawbridge-platform](https://github.com/KittyMi/openclaw-http-bridge) — Protocol docs and shared test vectors
 
 ## Open Source
