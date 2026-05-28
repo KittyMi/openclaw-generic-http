@@ -255,3 +255,9 @@ Upstream collaboration:
 - [Security](./SECURITY.md)
 
 Run `npm run build && npm test && npm run pack:check && npm run test:e2e` before submitting changes.
+
+## Ecosystem
+
+- [OpenClaw](https://openclaw.ai) — AI agent host runtime
+- [clawbridge-platform](https://github.com/KittyMi/openclaw-http-bridge) — Protocol docs and shared test vectors
+- [npm](https://www.npmjs.com/package/@kittymi/openclaw-generic-http) — npm package page

@@ -256,3 +256,9 @@ npm run test:e2e
 - [安全上报](./SECURITY.md)
 
 提交改动前请执行 `npm run build && npm test && npm run pack:check && npm run test:e2e`。
+
+## 生态
+
+- [OpenClaw](https://openclaw.ai) — AI agent 宿主运行时
+- [clawbridge-platform](https://github.com/KittyMi/openclaw-http-bridge) — 平台协议文档与共享测试向量
+- [npm](https://www.npmjs.com/package/@kittymi/openclaw-generic-http) — npm 包页面
