@@ -176,7 +176,23 @@ describe("createGenericHttpChannelPlugin", () => {
     expect(plugin.status()).toEqual({
       enabled: true,
       defaultAccount: "acct-1",
-      accounts: ["acct-1"]
+      accounts: ["acct-1"],
+      accountStatuses: {
+        "acct-1": {
+          accountId: "acct-1",
+          isDefault: true,
+          baseUrlConfigured: true,
+          apiKeyConfigured: false,
+          signingSecretConfigured: true,
+          inboundSecretConfigured: true,
+          outboundSecretConfigured: true,
+          readyForProbe: true,
+          readyForStream: true,
+          readyForOutbound: true,
+          configurationStatus: "OK",
+          issues: []
+        }
+      }
     });
     expect(plugin.capabilities()).toEqual({
       textInbound: true,
@@ -368,6 +384,13 @@ describe("createGenericHttpChannelPlugin", () => {
       consecutiveFailures: 0,
       nextRetryDelayMillis: 0,
       circuitState: "closed",
+      streamState: "idle",
+      activeRequestInFlight: false,
+      lastErrorMessage: null,
+      lastErrorCategory: null,
+      lastErrorOperation: null,
+      lastErrorStatus: null,
+      lastErrorRetryable: null,
       perAccount: {}
     });
   });
@@ -468,12 +491,26 @@ describe("createGenericHttpChannelPlugin", () => {
       consecutiveFailures: 1,
       nextRetryDelayMillis: 1_000,
       circuitState: "closed",
+      streamState: "backing-off",
+      activeRequestInFlight: false,
+      lastErrorMessage: "GET /stream/inbound failed with 503 Service Unavailable",
+      lastErrorCategory: "remote-server",
+      lastErrorOperation: "GET /stream/inbound",
+      lastErrorStatus: 503,
+      lastErrorRetryable: true,
       perAccount: {
         "acct-1": {
           running: true,
           consecutiveFailures: 1,
           nextRetryDelayMillis: 1_000,
           circuitState: "closed",
+          streamState: "backing-off",
+          activeRequestInFlight: false,
+          lastErrorMessage: "GET /stream/inbound failed with 503 Service Unavailable",
+          lastErrorCategory: "remote-server",
+          lastErrorOperation: "GET /stream/inbound",
+          lastErrorStatus: 503,
+          lastErrorRetryable: true,
           circuitOpenUntilMillis: null
         }
       }
@@ -493,12 +530,26 @@ describe("createGenericHttpChannelPlugin", () => {
       consecutiveFailures: 0,
       nextRetryDelayMillis: 0,
       circuitState: "closed",
+      streamState: "running",
+      activeRequestInFlight: false,
+      lastErrorMessage: null,
+      lastErrorCategory: null,
+      lastErrorOperation: null,
+      lastErrorStatus: null,
+      lastErrorRetryable: null,
       perAccount: {
         "acct-1": {
           running: true,
           consecutiveFailures: 0,
           nextRetryDelayMillis: 0,
           circuitState: "closed",
+          streamState: "running",
+          activeRequestInFlight: false,
+          lastErrorMessage: null,
+          lastErrorCategory: null,
+          lastErrorOperation: null,
+          lastErrorStatus: null,
+          lastErrorRetryable: null,
           circuitOpenUntilMillis: null
         }
       }
@@ -551,12 +602,26 @@ describe("createGenericHttpChannelPlugin", () => {
       consecutiveFailures: 0,
       nextRetryDelayMillis: 0,
       circuitState: "closed",
+      streamState: "running",
+      activeRequestInFlight: false,
+      lastErrorMessage: null,
+      lastErrorCategory: null,
+      lastErrorOperation: null,
+      lastErrorStatus: null,
+      lastErrorRetryable: null,
       perAccount: {
         "acct-1": {
           running: true,
           consecutiveFailures: 0,
           nextRetryDelayMillis: 0,
           circuitState: "closed",
+          streamState: "running",
+          activeRequestInFlight: false,
+          lastErrorMessage: null,
+          lastErrorCategory: null,
+          lastErrorOperation: null,
+          lastErrorStatus: null,
+          lastErrorRetryable: null,
           circuitOpenUntilMillis: null
         },
         "acct-2": {
@@ -564,6 +629,13 @@ describe("createGenericHttpChannelPlugin", () => {
           consecutiveFailures: 0,
           nextRetryDelayMillis: 0,
           circuitState: "closed",
+          streamState: "running",
+          activeRequestInFlight: false,
+          lastErrorMessage: null,
+          lastErrorCategory: null,
+          lastErrorOperation: null,
+          lastErrorStatus: null,
+          lastErrorRetryable: null,
           circuitOpenUntilMillis: null
         }
       }
@@ -577,6 +649,13 @@ describe("createGenericHttpChannelPlugin", () => {
       consecutiveFailures: 0,
       nextRetryDelayMillis: 0,
       circuitState: "closed",
+      streamState: "idle",
+      activeRequestInFlight: false,
+      lastErrorMessage: null,
+      lastErrorCategory: null,
+      lastErrorOperation: null,
+      lastErrorStatus: null,
+      lastErrorRetryable: null,
       perAccount: {}
     });
   });
@@ -640,12 +719,26 @@ describe("createGenericHttpChannelPlugin", () => {
       consecutiveFailures: 1,
       nextRetryDelayMillis: 1_000,
       circuitState: "closed",
+      streamState: "backing-off",
+      activeRequestInFlight: false,
+      lastErrorMessage: "GET /stream/inbound failed with 503 Service Unavailable",
+      lastErrorCategory: "remote-server",
+      lastErrorOperation: "GET /stream/inbound",
+      lastErrorStatus: 503,
+      lastErrorRetryable: true,
       perAccount: {
         "acct-1": {
           running: true,
           consecutiveFailures: 1,
           nextRetryDelayMillis: 1_000,
           circuitState: "closed",
+          streamState: "backing-off",
+          activeRequestInFlight: false,
+          lastErrorMessage: "GET /stream/inbound failed with 503 Service Unavailable",
+          lastErrorCategory: "remote-server",
+          lastErrorOperation: "GET /stream/inbound",
+          lastErrorStatus: 503,
+          lastErrorRetryable: true,
           circuitOpenUntilMillis: null
         }
       }
@@ -663,12 +756,26 @@ describe("createGenericHttpChannelPlugin", () => {
       consecutiveFailures: 2,
       nextRetryDelayMillis: 5_000,
       circuitState: "open",
+      streamState: "circuit-open",
+      activeRequestInFlight: false,
+      lastErrorMessage: "GET /stream/inbound failed with 503 Service Unavailable",
+      lastErrorCategory: "remote-server",
+      lastErrorOperation: "GET /stream/inbound",
+      lastErrorStatus: 503,
+      lastErrorRetryable: true,
       perAccount: {
         "acct-1": {
           running: true,
           consecutiveFailures: 2,
           nextRetryDelayMillis: 5_000,
           circuitState: "open",
+          streamState: "circuit-open",
+          activeRequestInFlight: false,
+          lastErrorMessage: "GET /stream/inbound failed with 503 Service Unavailable",
+          lastErrorCategory: "remote-server",
+          lastErrorOperation: "GET /stream/inbound",
+          lastErrorStatus: 503,
+          lastErrorRetryable: true,
           circuitOpenUntilMillis: 6_000
         }
       }
@@ -695,12 +802,26 @@ describe("createGenericHttpChannelPlugin", () => {
       consecutiveFailures: 0,
       nextRetryDelayMillis: 0,
       circuitState: "closed",
+      streamState: "running",
+      activeRequestInFlight: false,
+      lastErrorMessage: null,
+      lastErrorCategory: null,
+      lastErrorOperation: null,
+      lastErrorStatus: null,
+      lastErrorRetryable: null,
       perAccount: {
         "acct-1": {
           running: true,
           consecutiveFailures: 0,
           nextRetryDelayMillis: 0,
           circuitState: "closed",
+          streamState: "running",
+          activeRequestInFlight: false,
+          lastErrorMessage: null,
+          lastErrorCategory: null,
+          lastErrorOperation: null,
+          lastErrorStatus: null,
+          lastErrorRetryable: null,
           circuitOpenUntilMillis: null
         }
       }
@@ -832,6 +953,13 @@ describe("createGenericHttpChannelPlugin", () => {
       consecutiveFailures: 0,
       nextRetryDelayMillis: 0,
       circuitState: "closed",
+      streamState: "idle",
+      activeRequestInFlight: false,
+      lastErrorMessage: null,
+      lastErrorCategory: null,
+      lastErrorOperation: null,
+      lastErrorStatus: null,
+      lastErrorRetryable: null,
       perAccount: {}
     });
   });

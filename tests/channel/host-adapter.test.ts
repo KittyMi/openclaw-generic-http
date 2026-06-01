@@ -56,7 +56,23 @@ describe("createGenericHttpHostAdapter", () => {
     expect(adapter.status()).toEqual({
       enabled: true,
       defaultAccount: "acct-1",
-      accounts: ["acct-1"]
+      accounts: ["acct-1"],
+      accountStatuses: {
+        "acct-1": {
+          accountId: "acct-1",
+          isDefault: true,
+          baseUrlConfigured: true,
+          apiKeyConfigured: false,
+          signingSecretConfigured: true,
+          inboundSecretConfigured: true,
+          outboundSecretConfigured: true,
+          readyForProbe: true,
+          readyForStream: true,
+          readyForOutbound: true,
+          configurationStatus: "OK",
+          issues: []
+        }
+      }
     });
 
     await adapter.activate("acct-1");
@@ -70,6 +86,13 @@ describe("createGenericHttpHostAdapter", () => {
       consecutiveFailures: 0,
       nextRetryDelayMillis: 0,
       circuitState: "closed",
+      streamState: "idle",
+      activeRequestInFlight: false,
+      lastErrorMessage: null,
+      lastErrorCategory: null,
+      lastErrorOperation: null,
+      lastErrorStatus: null,
+      lastErrorRetryable: null,
       perAccount: {}
     });
   });

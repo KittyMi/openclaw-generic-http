@@ -44,7 +44,23 @@ describe("registerPlugin", () => {
     expect(adapter.status()).toEqual({
       enabled: true,
       defaultAccount: "acct-1",
-      accounts: ["acct-1"]
+      accounts: ["acct-1"],
+      accountStatuses: {
+        "acct-1": {
+          accountId: "acct-1",
+          isDefault: true,
+          baseUrlConfigured: true,
+          apiKeyConfigured: false,
+          signingSecretConfigured: true,
+          inboundSecretConfigured: true,
+          outboundSecretConfigured: true,
+          readyForProbe: true,
+          readyForStream: true,
+          readyForOutbound: true,
+          configurationStatus: "OK",
+          issues: []
+        }
+      }
     });
   });
 
@@ -194,6 +210,7 @@ describe("registerPlugin", () => {
         signingSecretConfigured: true,
         inboundSecretConfigured: true,
         outboundSecretConfigured: true,
+        readyForProbe: true,
         readyForStream: true,
         readyForOutbound: true,
         status: "OK",
@@ -212,6 +229,7 @@ describe("registerPlugin", () => {
       baseUrl: "https://bridge.example.com",
       configuration: {
         status: "OK",
+        readyForProbe: true,
         readyForStream: true,
         readyForOutbound: true
       }
@@ -244,6 +262,7 @@ describe("registerPlugin", () => {
       accountId: "online_001",
       configuration: {
         signingSecretConfigured: false,
+        readyForProbe: false,
         readyForStream: false,
         readyForOutbound: false,
         status: "DEGRADED",

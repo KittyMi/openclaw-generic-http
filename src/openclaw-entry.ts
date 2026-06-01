@@ -111,6 +111,7 @@ type GenericHttpAccountConfigurationDiagnostic = {
   signingSecretConfigured: boolean;
   inboundSecretConfigured: boolean;
   outboundSecretConfigured: boolean;
+  readyForProbe: boolean;
   readyForStream: boolean;
   readyForOutbound: boolean;
   status: "OK" | "DEGRADED";
@@ -146,6 +147,7 @@ function buildAccountConfigurationDiagnostic(
 
   const readyForStream = baseUrlConfigured && inboundSecretConfigured;
   const readyForOutbound = baseUrlConfigured && outboundSecretConfigured;
+  const readyForProbe = baseUrlConfigured && signingSecretConfigured;
 
   return {
     baseUrlConfigured,
@@ -153,6 +155,7 @@ function buildAccountConfigurationDiagnostic(
     signingSecretConfigured,
     inboundSecretConfigured,
     outboundSecretConfigured,
+    readyForProbe,
     readyForStream,
     readyForOutbound,
     status: issues.length === 0 ? "OK" : "DEGRADED",

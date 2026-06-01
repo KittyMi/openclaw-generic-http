@@ -64,6 +64,13 @@ describe("createGenericHttpChannelLifecycle", () => {
       consecutiveFailures: 0,
       nextRetryDelayMillis: 0,
       circuitState: "closed",
+      streamState: "idle",
+      activeRequestInFlight: false,
+      lastErrorMessage: null,
+      lastErrorCategory: null,
+      lastErrorOperation: null,
+      lastErrorStatus: null,
+      lastErrorRetryable: null,
       perAccount: {}
     });
   });

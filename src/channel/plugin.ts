@@ -46,10 +46,26 @@ type OutboundClientFactory = (
   accountId: string
 ) => OutboundClient;
 
+export interface GenericHttpChannelPluginAccountStatus {
+  accountId: string;
+  isDefault: boolean;
+  baseUrlConfigured: boolean;
+  apiKeyConfigured: boolean;
+  signingSecretConfigured: boolean;
+  inboundSecretConfigured: boolean;
+  outboundSecretConfigured: boolean;
+  readyForProbe: boolean;
+  readyForStream: boolean;
+  readyForOutbound: boolean;
+  configurationStatus: "OK" | "DEGRADED";
+  issues: string[];
+}
+
 export interface GenericHttpChannelPluginStatus {
   enabled: boolean;
   defaultAccount: string;
   accounts: string[];
+  accountStatuses: Record<string, GenericHttpChannelPluginAccountStatus>;
 }
 
 export interface GenericHttpStreamErrorContext {
@@ -96,6 +112,13 @@ export interface GenericHttpStreamIngressStatus {
   consecutiveFailures: number;
   nextRetryDelayMillis: number;
   circuitState: "closed" | "open" | "half-open";
+  streamState: "idle" | "running" | "backing-off" | "circuit-open" | "half-open";
+  activeRequestInFlight: boolean;
+  lastErrorMessage: string | null;
+  lastErrorCategory: string | null;
+  lastErrorOperation: string | null;
+  lastErrorStatus: number | null;
+  lastErrorRetryable: boolean | null;
   perAccount: Record<
     string,
     {
@@ -103,6 +126,13 @@ export interface GenericHttpStreamIngressStatus {
       consecutiveFailures: number;
       nextRetryDelayMillis: number;
       circuitState: "closed" | "open" | "half-open";
+      streamState: "idle" | "running" | "backing-off" | "circuit-open" | "half-open";
+      activeRequestInFlight: boolean;
+      lastErrorMessage: string | null;
+      lastErrorCategory: string | null;
+      lastErrorOperation: string | null;
+      lastErrorStatus: number | null;
+      lastErrorRetryable: boolean | null;
       circuitOpenUntilMillis: number | null;
     }
   >;
@@ -184,6 +214,11 @@ export function createGenericHttpChannelPlugin(
     circuitState: "closed" | "open" | "half-open";
     circuitOpenUntilMillis: number | null;
     activeRequestController?: AbortController;
+    lastErrorMessage: string | null;
+    lastErrorCategory: string | null;
+    lastErrorOperation: string | null;
+    lastErrorStatus: number | null;
+    lastErrorRetryable: boolean | null;
   }
 
   const streamIngressStates = new Map<string, StreamIngressRuntimeState>();
@@ -198,7 +233,12 @@ export function createGenericHttpChannelPlugin(
         consecutiveFailures: 0,
         nextRetryDelayMillis: 0,
         circuitState: "closed",
-        circuitOpenUntilMillis: null
+        circuitOpenUntilMillis: null,
+        lastErrorMessage: null,
+        lastErrorCategory: null,
+        lastErrorOperation: null,
+        lastErrorStatus: null,
+        lastErrorRetryable: null
       };
       streamIngressStates.set(accountId, state);
     }
@@ -253,7 +293,16 @@ export function createGenericHttpChannelPlugin(
     return Math.min(streamIngressMaxBackoffMillis, Math.max(0, jitteredDelay));
   }
 
-  function markStreamIngressFailure(state: StreamIngressRuntimeState): number {
+  function markStreamIngressFailure(
+    state: StreamIngressRuntimeState,
+    error?: unknown
+  ): number {
+    const normalizedError = normalizeErrorDetails(error);
+    state.lastErrorMessage = normalizedError.lastErrorMessage;
+    state.lastErrorCategory = normalizedError.lastErrorCategory;
+    state.lastErrorOperation = normalizedError.lastErrorOperation;
+    state.lastErrorStatus = normalizedError.lastErrorStatus;
+    state.lastErrorRetryable = normalizedError.lastErrorRetryable;
     state.consecutiveFailures += 1;
     const shouldOpenCircuit =
       state.consecutiveFailures >= streamIngressCircuitBreakerThreshold;
@@ -274,6 +323,11 @@ export function createGenericHttpChannelPlugin(
     state.nextRetryDelayMillis = 0;
     state.circuitState = "closed";
     state.circuitOpenUntilMillis = null;
+    state.lastErrorMessage = null;
+    state.lastErrorCategory = null;
+    state.lastErrorOperation = null;
+    state.lastErrorStatus = null;
+    state.lastErrorRetryable = null;
   }
 
   function shouldShortCircuitAccount(state: StreamIngressRuntimeState): boolean {
@@ -336,7 +390,7 @@ export function createGenericHttpChannelPlugin(
         if (shouldSuppressAbortedError(state, error)) {
           return;
         }
-        nextDelayMillis = markStreamIngressFailure(state);
+        nextDelayMillis = markStreamIngressFailure(state, error);
         await options.onInboundStreamError?.({
           phase: "pull",
           accountId,
@@ -390,7 +444,7 @@ export function createGenericHttpChannelPlugin(
           if (shouldSuppressAbortedError(state, error)) {
             return;
           }
-          nextDelayMillis = markStreamIngressFailure(state);
+          nextDelayMillis = markStreamIngressFailure(state, error);
           await options.onInboundStreamError?.({
             phase: "ack",
             accountId,
@@ -438,10 +492,17 @@ export function createGenericHttpChannelPlugin(
     name: "generic-http",
     config,
     status() {
+      const accountStatuses = Object.fromEntries(
+        listConfiguredAccountIds(config).map((accountId) => [
+          accountId,
+          buildAccountStatus(config, accountId)
+        ])
+      );
       return {
         enabled: config.enabled,
         defaultAccount: config.defaultAccount,
-        accounts: listConfiguredAccountIds(config)
+        accounts: listConfiguredAccountIds(config),
+        accountStatuses
       };
     },
     capabilities() {
@@ -514,6 +575,16 @@ export function createGenericHttpChannelPlugin(
         primaryAccountId === null
           ? undefined
           : streamIngressStates.get(primaryAccountId);
+      const aggregateState =
+        primaryState ??
+        (activeAccountIds.length > 0
+          ? {
+              running: true,
+              circuitState: "closed" as const,
+              consecutiveFailures: 0,
+              nextRetryDelayMillis: 0
+            }
+          : undefined);
       const perAccount = Object.fromEntries(
         activeAccountIds.map((activeAccountId) => {
           const state = streamIngressStates.get(activeAccountId);
@@ -524,6 +595,13 @@ export function createGenericHttpChannelPlugin(
               consecutiveFailures: state?.consecutiveFailures ?? 0,
               nextRetryDelayMillis: state?.nextRetryDelayMillis ?? 0,
               circuitState: state?.circuitState ?? "closed",
+              streamState: resolveStreamStateLabel(state),
+              activeRequestInFlight: Boolean(state?.activeRequestController),
+              lastErrorMessage: state?.lastErrorMessage ?? null,
+              lastErrorCategory: state?.lastErrorCategory ?? null,
+              lastErrorOperation: state?.lastErrorOperation ?? null,
+              lastErrorStatus: state?.lastErrorStatus ?? null,
+              lastErrorRetryable: state?.lastErrorRetryable ?? null,
               circuitOpenUntilMillis: state?.circuitOpenUntilMillis ?? null
             }
           ];
@@ -537,6 +615,13 @@ export function createGenericHttpChannelPlugin(
         consecutiveFailures: primaryState?.consecutiveFailures ?? 0,
         nextRetryDelayMillis: primaryState?.nextRetryDelayMillis ?? 0,
         circuitState: primaryState?.circuitState ?? "closed",
+        streamState: resolveStreamStateLabel(aggregateState),
+        activeRequestInFlight: Boolean(primaryState?.activeRequestController),
+        lastErrorMessage: primaryState?.lastErrorMessage ?? null,
+        lastErrorCategory: primaryState?.lastErrorCategory ?? null,
+        lastErrorOperation: primaryState?.lastErrorOperation ?? null,
+        lastErrorStatus: primaryState?.lastErrorStatus ?? null,
+        lastErrorRetryable: primaryState?.lastErrorRetryable ?? null,
         perAccount
       };
     },
@@ -552,6 +637,104 @@ export function createGenericHttpChannelPlugin(
       }
     }
   };
+}
+
+function hasConfiguredValue(value?: string | null): boolean {
+  return typeof value === "string" && value.trim() !== "";
+}
+
+function buildAccountStatus(
+  config: GenericHttpPluginConfig,
+  accountId: string
+): GenericHttpChannelPluginAccountStatus {
+  const account = resolveConfiguredAccount(config, accountId);
+  const baseUrlConfigured = hasConfiguredValue(account.config.baseUrl);
+  const apiKeyConfigured = hasConfiguredValue(account.config.apiKey);
+  const signingSecretConfigured = hasConfiguredValue(account.config.signingSecret);
+  const inboundSecretConfigured =
+    hasConfiguredValue(account.config.inboundSecret) || signingSecretConfigured;
+  const outboundSecretConfigured =
+    hasConfiguredValue(account.config.outboundSecret) || signingSecretConfigured;
+  const issues: string[] = [];
+
+  if (!baseUrlConfigured) {
+    issues.push("baseUrl is missing");
+  }
+  if (!signingSecretConfigured) {
+    issues.push("signingSecret is missing");
+  }
+
+  return {
+    accountId: account.accountId,
+    isDefault: account.accountId === config.defaultAccount,
+    baseUrlConfigured,
+    apiKeyConfigured,
+    signingSecretConfigured,
+    inboundSecretConfigured,
+    outboundSecretConfigured,
+    readyForProbe: baseUrlConfigured && signingSecretConfigured,
+    readyForStream: baseUrlConfigured && inboundSecretConfigured,
+    readyForOutbound: baseUrlConfigured && outboundSecretConfigured,
+    configurationStatus: issues.length === 0 ? "OK" : "DEGRADED",
+    issues
+  };
+}
+
+function normalizeErrorDetails(
+  error: unknown
+): {
+  lastErrorMessage: string | null;
+  lastErrorCategory: string | null;
+  lastErrorOperation: string | null;
+  lastErrorStatus: number | null;
+  lastErrorRetryable: boolean | null;
+} {
+  if (!(error instanceof GenericHttpPluginError)) {
+    return {
+      lastErrorMessage: error instanceof Error ? error.message : String(error ?? ""),
+      lastErrorCategory: null,
+      lastErrorOperation: null,
+      lastErrorStatus: null,
+      lastErrorRetryable: null
+    };
+  }
+
+  const statusValue = error.details?.status;
+  return {
+    lastErrorMessage: error.message,
+    lastErrorCategory:
+      typeof error.details?.category === "string" ? error.details.category : null,
+    lastErrorOperation:
+      typeof error.details?.operation === "string" ? error.details.operation : null,
+    lastErrorStatus:
+      typeof statusValue === "number" && Number.isFinite(statusValue) ? statusValue : null,
+    lastErrorRetryable: error.retryable
+  };
+}
+
+function resolveStreamStateLabel(
+  state:
+    | {
+        running?: boolean;
+        circuitState?: "closed" | "open" | "half-open";
+        consecutiveFailures?: number;
+        nextRetryDelayMillis?: number;
+      }
+    | undefined
+): "idle" | "running" | "backing-off" | "circuit-open" | "half-open" {
+  if (!state?.running) {
+    return "idle";
+  }
+  if (state.circuitState === "open") {
+    return "circuit-open";
+  }
+  if (state.circuitState === "half-open") {
+    return "half-open";
+  }
+  if ((state.consecutiveFailures ?? 0) > 0 && (state.nextRetryDelayMillis ?? 0) > 0) {
+    return "backing-off";
+  }
+  return "running";
 }
 
 export const genericHttpChannelPlugin = createGenericHttpChannelPlugin();
