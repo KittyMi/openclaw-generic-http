@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { dirname, resolve as resolvePath } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import {
   createGenericHttpChannelLifecycle,
@@ -52,6 +54,9 @@ type OpenClawChannelRuntimeLike = {
       parentPeer?: OpenClawRoutePeerLike | null;
     }) => OpenClawResolvedRouteLike;
   };
+  inbound?: {
+    dispatchReply?: (params: Record<string, unknown>) => Promise<unknown>;
+  };
   session: {
     resolveStorePath: (store: string | undefined, opts: { agentId: string }) => string;
     recordInboundSession: unknown;
@@ -60,8 +65,19 @@ type OpenClawChannelRuntimeLike = {
     dispatchReplyWithBufferedBlockDispatcher: unknown;
     finalizeInboundContext?: (params: Record<string, unknown>) => Record<string, unknown>;
   };
+};
+
+type OpenClawLegacyChannelRuntimeLike = OpenClawChannelRuntimeLike & {
   turn: {
     runAssembled: (params: Record<string, unknown>) => Promise<unknown>;
+  };
+};
+
+type OpenClawPluginsRuntimeModuleLike = {
+  createPluginRuntime?: (options?: {
+    allowGatewaySubagentBinding?: boolean;
+  }) => {
+    channel?: unknown;
   };
 };
 
@@ -607,18 +623,71 @@ function buildInboundAgentText(
   return attachmentSummary;
 }
 
-function requireChannelRuntime(
+function isOpenClawChannelRuntimeLike(
   value: unknown
-): OpenClawChannelRuntimeLike {
+): value is OpenClawChannelRuntimeLike {
   if (
     value &&
     typeof value === "object" &&
     "routing" in value &&
     "session" in value &&
-    "reply" in value &&
-    "turn" in value
+    "reply" in value
   ) {
-    return value as OpenClawChannelRuntimeLike;
+    return true;
+  }
+
+  return false;
+}
+
+function isOpenClawLegacyChannelRuntimeLike(
+  value: unknown
+): value is OpenClawLegacyChannelRuntimeLike {
+  return (
+    isOpenClawChannelRuntimeLike(value) &&
+    "turn" in value &&
+    typeof (value as { turn?: { runAssembled?: unknown } }).turn?.runAssembled ===
+      "function"
+  );
+}
+
+let fallbackChannelRuntimePromise:
+  | Promise<OpenClawChannelRuntimeLike | null>
+  | null = null;
+
+async function loadFallbackChannelRuntime(): Promise<OpenClawChannelRuntimeLike | null> {
+  const gatewayEntry = normalizeOptionalText(process.argv[1]);
+  if (!gatewayEntry) {
+    return null;
+  }
+
+  const runtimeModuleUrl = pathToFileURL(
+    resolvePath(dirname(gatewayEntry), "plugins", "runtime", "index.js")
+  ).href;
+  const runtimeModule =
+    (await import(runtimeModuleUrl)) as OpenClawPluginsRuntimeModuleLike;
+  if (typeof runtimeModule.createPluginRuntime !== "function") {
+    return null;
+  }
+
+  const pluginRuntime = runtimeModule.createPluginRuntime({
+    allowGatewaySubagentBinding: true
+  });
+  return isOpenClawChannelRuntimeLike(pluginRuntime.channel)
+    ? pluginRuntime.channel
+    : null;
+}
+
+async function requireChannelRuntime(
+  value: unknown
+): Promise<OpenClawChannelRuntimeLike> {
+  if (isOpenClawChannelRuntimeLike(value)) {
+    return value;
+  }
+
+  fallbackChannelRuntimePromise ??= loadFallbackChannelRuntime().catch(() => null);
+  const fallbackRuntime = await fallbackChannelRuntimePromise;
+  if (isOpenClawChannelRuntimeLike(fallbackRuntime)) {
+    return fallbackRuntime;
   }
 
   throw new Error(
@@ -634,6 +703,16 @@ function finalizeInboundContextForRuntime(
     return runtime.reply.finalizeInboundContext(payload);
   }
   return payload;
+}
+
+function hasInboundDispatchReply(
+  runtime: OpenClawChannelRuntimeLike
+): runtime is OpenClawChannelRuntimeLike & {
+  inbound: {
+    dispatchReply: (params: Record<string, unknown>) => Promise<unknown>;
+  };
+} {
+  return typeof runtime.inbound?.dispatchReply === "function";
 }
 
 async function deliverOutboundReply(params: {
@@ -675,7 +754,7 @@ async function dispatchInboundEventToOpenClaw(params: {
   ctx: OpenClawGatewayContextLike;
   event: NormalizedInboundMessageEvent;
 }): Promise<void> {
-  const runtime = requireChannelRuntime(params.ctx.channelRuntime);
+  const runtime = await requireChannelRuntime(params.ctx.channelRuntime);
   const route = runtime.routing.resolveAgentRoute({
     cfg: params.ctx.cfg,
     channel: CHANNEL_ID,
@@ -759,36 +838,86 @@ async function dispatchInboundEventToOpenClaw(params: {
     ]
   });
 
-  await runtime.turn.runAssembled({
-    cfg: params.ctx.cfg,
-    channel: CHANNEL_ID,
-    accountId: params.event.accountId,
-    agentId: route.agentId,
-    routeSessionKey,
-    storePath,
-    ctxPayload,
-    recordInboundSession: runtime.session.recordInboundSession,
-    dispatchReplyWithBufferedBlockDispatcher:
-      runtime.reply.dispatchReplyWithBufferedBlockDispatcher,
-    delivery: {
-      deliver: async (payload: Record<string, unknown>) => {
-        await deliverOutboundReply({
-          cfg: params.ctx.cfg,
-          accountId: params.event.accountId,
-          conversationId: params.event.conversationId,
-          conversationType:
-            params.event.conversationType as "dm" | "group" | "room" | "ticket",
-          threadId: params.event.threadId,
-          payload
-        });
-        return { visibleReplySent: true };
-      }
-    },
-    replyOptions: {
-      sourceReplyDeliveryMode: "automatic"
-    },
-    messageId: params.event.messageId
-  });
+  if (isOpenClawLegacyChannelRuntimeLike(params.ctx.channelRuntime)) {
+    await params.ctx.channelRuntime.turn.runAssembled({
+      cfg: params.ctx.cfg,
+      channel: CHANNEL_ID,
+      accountId: params.event.accountId,
+      agentId: route.agentId,
+      routeSessionKey,
+      storePath,
+      ctxPayload,
+      recordInboundSession: runtime.session.recordInboundSession,
+      dispatchReplyWithBufferedBlockDispatcher:
+        runtime.reply.dispatchReplyWithBufferedBlockDispatcher,
+      delivery: {
+        deliver: async (payload: Record<string, unknown>) => {
+          await deliverOutboundReply({
+            cfg: params.ctx.cfg,
+            accountId: params.event.accountId,
+            conversationId: params.event.conversationId,
+            conversationType:
+              params.event.conversationType as "dm" | "group" | "room" | "ticket",
+            threadId: params.event.threadId,
+            payload
+          });
+          return { visibleReplySent: true };
+        }
+      },
+      replyOptions: {
+        sourceReplyDeliveryMode: "automatic"
+      },
+      messageId: params.event.messageId
+    });
+    return;
+  }
+
+  if (hasInboundDispatchReply(runtime)) {
+    await runtime.inbound.dispatchReply({
+      cfg: params.ctx.cfg,
+      channel: CHANNEL_ID,
+      accountId: params.event.accountId,
+      agentId: route.agentId,
+      routeSessionKey,
+      storePath,
+      ctxPayload,
+      recordInboundSession: runtime.session.recordInboundSession,
+      dispatchReplyWithBufferedBlockDispatcher:
+        runtime.reply.dispatchReplyWithBufferedBlockDispatcher,
+      delivery: {
+        deliver: async (payload: Record<string, unknown>) => {
+          await deliverOutboundReply({
+            cfg: params.ctx.cfg,
+            accountId: params.event.accountId,
+            conversationId: params.event.conversationId,
+            conversationType:
+              params.event.conversationType as "dm" | "group" | "room" | "ticket",
+            threadId: params.event.threadId,
+            payload
+          });
+          return { visibleReplySent: true };
+        },
+        onError: (error: unknown) => {
+          throw error;
+        }
+      },
+      replyPipeline: {},
+      record: {
+        onRecordError: (error: unknown) => {
+          throw error;
+        }
+      },
+      replyOptions: {
+        sourceReplyDeliveryMode: "automatic"
+      },
+      messageId: params.event.messageId
+    });
+    return;
+  }
+
+  throw new Error(
+    "OpenClaw inbound dispatch runtime is unavailable; generic-http stream ingress cannot dispatch inbound messages"
+  );
 }
 
 function inferAttachmentKind(source: {

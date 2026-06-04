@@ -28,6 +28,9 @@
 | [05-compatibility-matrix.md](./05-compatibility-matrix.md) | 版本兼容声明、对齐基线与升级规则 |
 | [06-release-checklist.md](./06-release-checklist.md) | 发布前检查项 |
 | [07-release-notes-policy.md](./07-release-notes-policy.md) | CHANGELOG 与版本发布说明策略 |
+| [09-joint-0.2.0-task-breakdown.md](./09-joint-0.2.0-task-breakdown.md) | 联合 `0.2.0` 双仓任务拆解 |
+| [10-joint-0.2.0-sprint-a-checklist.md](./10-joint-0.2.0-sprint-a-checklist.md) | 联合 `0.2.0` Sprint A 执行清单 |
+| [11-openclaw-2026.6-compat-validation.md](./11-openclaw-2026.6-compat-validation.md) | OpenClaw `2026.6.x` 宿主兼容验证记录 |
 
 ## 协议与安全
 

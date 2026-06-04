@@ -22,6 +22,7 @@
 4. `docs/05-compatibility-matrix.md`
 5. `docs/06-release-checklist.md`
 6. `D:\openclaw-http-bridge\docs\15-version-matrix.md`
+7. `docs/11-openclaw-2026.6-compat-validation.md`（如本次调整 OpenClaw 支持范围）
 
 ## 3. 版本号变更规则
 
@@ -32,6 +33,7 @@
 1. `CHANGELOG.md`
 2. `docs/05-compatibility-matrix.md` 中的插件发布基线
 3. 平台仓库 `docs/15-version-matrix.md` 中的外部插件版本
+4. 如支持范围扩大，补对应宿主验证记录
 
 ### 3.2 不应只改版本号
 
@@ -71,6 +73,7 @@
 1. README 中的“兼容性”必须与 `docs/05-compatibility-matrix.md` 一致
 2. README 中的“发布定位”必须与当前发布治理成熟度一致
 3. README 不要宣称超出实测范围的兼容性
+4. 如要升级 OpenClaw 支持线，必须先有独立验证记录，再改 README
 
 ## 6. 兼容矩阵同步规则
 
@@ -84,6 +87,9 @@
 
 如果兼容矩阵更新了，平台仓库 `docs/15-version-matrix.md` 也必须同步检查。
 
+如果兼容矩阵的变化包含 OpenClaw 支持线扩大，还必须同步检查
+`docs/11-openclaw-2026.6-compat-validation.md` 中是否已有明确结论。
+
 ## 7. 平台协同规则
 
 以下场景属于双仓同步变更：
@@ -93,6 +99,7 @@
 3. 路由模型变化
 4. 共享测试向量变化
 5. 插件与平台的兼容声明变化
+6. OpenClaw 支持线扩大
 
 此时至少要同步检查：
 
@@ -112,6 +119,7 @@
 | `README.md` | 兼容范围与发布定位无漂移 |
 | `docs/05-compatibility-matrix.md` | 发布基线和兼容范围已更新 |
 | 平台矩阵 | 外部插件版本和兼容口径已同步 |
+| 宿主验证记录 | 扩大支持范围时已有明确结论 |
 
 ## 9. 常见错误写法
 
@@ -135,3 +143,4 @@
 3. 当前已验证 Node.js `22.x` 和 `24.x`
 4. 当前 npm 发布通过手动触发 GitHub Actions workflow 执行
 5. 在补完更广泛兼容验证前，不扩大支持声明
+6. 联合 `0.2.0` 当前仍基于 `protocol v1`，升级主题不等于自动扩大宿主支持线

@@ -2,7 +2,7 @@
 
 ## 1. 当前发布状态是什么？
 
-`@kittymi/openclaw-generic-http` 已发布 `0.1.6` 正式版本，具备以下能力：
+`@kittymi/openclaw-generic-http` 已发布 `0.1.7` 正式版本，具备以下能力：
 
 - `webhook + stream` ingress 运行时
 - `health / probe / resolve / capabilities`

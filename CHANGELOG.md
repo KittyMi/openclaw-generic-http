@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-06-04
+
+### OpenClaw `2026.5.28` 入站回复兼容修复
+
+- 将 modern runtime 入站回复派发切到当前 OpenClaw 官方 `runtime.inbound.dispatchReply(...)` 路径
+- 修复本机 OpenClaw `2026.5.28` 下 stream ingress 能拉到消息但无法稳定触发 reply delivery 的问题
+- 保留 legacy runtime 分支兼容，避免旧宿主回退
+- 清理 `openclaw-entry.ts` 中已无用的 gateway dist helper
+- 发布线升级到 `0.1.7`
+
 ## [0.1.6] - 2026-05-25
 
 ### 运行时与发布收口

@@ -42,6 +42,7 @@
 3. `README.md`、`docs/05-compatibility-matrix.md` 与当前兼容声明一致
 4. 如修改协议、签名、路由或共享向量，平台仓库文档已同步更新
 5. 本地工作区没有不打算随发布一起说明的脏改动
+6. 如果要扩大 OpenClaw 支持范围，必须先补对应宿主验证记录
 
 如果本次变更涉及 OpenClaw 支持范围、Node.js 支持范围、协议字段或共享测试向量，
 必须同步检查：
@@ -50,6 +51,7 @@
 - `D:\openclaw-http-bridge\docs\02-protocol-v1.md`
 - `D:\openclaw-http-bridge\docs\06-security-spec.md`
 - `D:\openclaw-http-bridge\docs\08-session-routing-spec.md`
+- `docs/11-openclaw-2026.6-compat-validation.md`
 
 ## 4. 本地发布前检查
 
@@ -74,6 +76,7 @@ git status --short
 2. 单元测试全部通过
 3. `npm pack --dry-run` 成功
 4. 最小真实 bridge 回归通过
+5. 如扩大支持声明，宿主验证记录完整
 
 ## 5. 文档与版本收口
 
@@ -84,6 +87,7 @@ git status --short
 3. `README.md`
 4. `docs/05-compatibility-matrix.md`
 5. `D:\openclaw-http-bridge\docs\15-version-matrix.md`
+6. `docs/11-openclaw-2026.6-compat-validation.md`（如本次改兼容声明）
 
 重点检查项：
 
@@ -94,6 +98,7 @@ git status --short
 | OpenClaw 支持范围 | `README.md` 与兼容矩阵一致 |
 | Node.js 支持范围 | `README.md` 与兼容矩阵一致 |
 | 平台对齐版本 | 插件矩阵与平台矩阵一致 |
+| 宿主验证记录 | 扩大支持声明时必须有对应记录 |
 
 ## 6. 触发发布
 
@@ -158,6 +163,7 @@ workflow 成功后，至少确认：
 3. 本地没跑 `test:e2e`，但 workflow 才暴露最小 bridge 回归失败
 4. `package.json` 版本号已存在于 npm
 5. 兼容声明扩大了，但没有新增实测依据
+6. README 写了新支持线，但没有同步平台矩阵
 
 排障时优先看：
 
@@ -166,6 +172,7 @@ workflow 成功后，至少确认：
 3. 本地 `npm run test:e2e`
 4. GitHub Actions workflow 日志
 5. npm registry 上的实际版本状态
+6. `docs/11-openclaw-2026.6-compat-validation.md`
 
 ## 10. 变更纪律
 

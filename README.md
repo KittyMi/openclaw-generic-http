@@ -50,6 +50,8 @@ OpenClaw 的 `generic-http` channel 插件。通过 HTTP bridge/relay 将第三�
 | 自动重连 | 已支持 | stream 断开后退避重试 |
 | 结构化错误上报 | 已支持 | plugin pull/dispatch/ack 异常带 `errorCode` |
 | 配置诊断 | 已支持 | `readyForStream` / `readyForOutbound` 状态暴露 |
+| 账号级状态摘要 | 已支持 | `accountStatuses` 输出 `readyForProbe` / `readyForStream` / `readyForOutbound` 与 `issues` |
+| 流运行时诊断 | 已支持 | `streamState`、`activeRequestInFlight` 与最近错误摘要可读 |
 
 ## 架构定位
 
@@ -69,9 +71,9 @@ webhook ──→ POST /webhooks/inbound/messages ──→ GET /stream/inbound 
 
 | 维度 | 基线 | 状态 |
 | --- | --- | --- |
-| 插件版本 | `0.1.6` | 当前发布 |
+| 插件版本 | `0.1.7` | 当前发布 |
 | OpenClaw | `2026.5.x` | 声明支持线 |
-| OpenClaw | `2026.5.12 (f066dd2)` | 实机验证 |
+| OpenClaw | `2026.5.22 (a374c3a)` | 本机宿主加载验证 |
 | Node.js | `>=22.16.0` | 引擎要求 |
 | Node.js | `22.x` / `24.x` | CI + 本地验证 |
 | 协议 | `generic-http protocol v1` | 对齐基线 |
@@ -82,7 +84,22 @@ webhook ──→ POST /webhooks/inbound/messages ──→ GET /stream/inbound 
 - OpenClaw `2026.4.x` 及更早版本 — 未验证，不承诺兼容
 - OpenClaw `2026.6.x` 及更高版本 — 未验证，后续单独评估
 
-详见 [兼容矩阵文档](./docs/05-compatibility-matrix.md)。
+联合 `0.2.0` 当前仍基于 `protocol v1` 推进，插件侧下一步的升级门槛不是改协议，
+而是补完 OpenClaw `2026.6.x` 的宿主冒烟验证，再决定是否扩大正式支持声明。
+
+当前 `2026.5.22` 的验证范围仅覆盖：
+
+- 插件 link / load / inspect 成功
+- `generic-http` channel 已被宿主发现
+
+当前 `0.1.7` 已额外修复 OpenClaw `2026.5.28` 下的 modern runtime 入站回复派发兼容问题，
+本机已确认 `stream -> outbound -> ack` 闭环恢复正常。
+
+当前本机 `2026.5.28` 已补到真实 `stream -> outbound -> ack` 闭环验证，
+但这份 README 仍未把正式支持范围扩大到 `2026.6.x`。
+
+详见 [兼容矩阵文档](./docs/05-compatibility-matrix.md) 和
+[下一阶段规划](./docs/04-next-phase-plan.md)。
 
 ## 快速开始
 
@@ -225,7 +242,7 @@ npm run test:e2e
 ## 已知限制
 
 - 正式声明兼容仅覆盖 OpenClaw Desktop `2026.5.x`
-- 实机验证仅针对 `2026.5.12 (f066dd2)` 完成
+- 当前新增 `2026.5.22 (a374c3a)` 的宿主加载验证，但尚未补完整闭环验证
 - `openclaw channels add --channel ...` 依赖静态 catalog，第三方 channel 不一定出现在交互式枚举中
 - 尚未覆盖多 OpenClaw 版本的兼容矩阵
 - 富媒体仅限于图片和文件附件，不含卡片、按钮等交互组件
