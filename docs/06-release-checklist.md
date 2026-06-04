@@ -14,10 +14,11 @@
 
 ## 2. 当前发布方式
 
-当前插件发布采用“两段式”固定路径：
+当前插件发布采用“三段式”固定路径：
 
 1. 本地先完成文档、构建和最小回归检查
-2. GitHub Actions 手动触发 npm 发布 workflow
+2. 先生成对应版本的 git tag，并创建对应 GitHub Release
+3. GitHub Actions 手动触发 npm 发布 workflow
 
 当前 workflow 入口：
 
@@ -102,6 +103,20 @@ git status --short
 
 ## 6. 触发发布
 
+在触发 npm 发布前，必须先完成版本标记和 GitHub Release：
+
+1. 确认目标版本对应的提交已经落在默认发布分支
+2. 创建并推送版本 tag，例如 `v0.1.7`
+3. 基于同名 tag 创建 GitHub `New release`
+4. Release 标题与 tag 保持一致，例如 `v0.1.7`
+5. Release 内容至少覆盖 `CHANGELOG.md` 中该版本的实际变更
+
+当前硬规则：
+
+1. 不允许先发 npm、后补 tag
+2. 不允许只打 tag、不建 GitHub Release
+3. npm 上的发布版本、git tag、GitHub Release 三者必须一致
+
 当前通过 GitHub Actions 手动触发：
 
 1. 打开仓库 Actions
@@ -126,8 +141,10 @@ workflow 成功后，至少确认：
 
 1. npm 包已可查询到目标版本
 2. npm 包 metadata 与仓库信息一致
-3. README 中的安装命令仍适用于当前发布线
-4. 如本次变更影响兼容声明，平台仓库矩阵也已同步
+3. 对应版本的 git tag 已经存在于远端
+4. 对应版本的 GitHub Release 已可访问
+5. README 中的安装命令仍适用于当前发布线
+6. 如本次变更影响兼容声明，平台仓库矩阵也已同步
 
 建议最小记录项：
 
@@ -135,6 +152,8 @@ workflow 成功后，至少确认：
 | --- | --- |
 | package name | `@kittymi/openclaw-generic-http` |
 | package version | 本次发布号 |
+| git tag | 例如 `v0.1.7` |
+| GitHub Release | Release 链接 |
 | npm tag | `latest` 或实际使用标签 |
 | workflow run | GitHub Actions run 链接或编号 |
 | docs synced | `yes/no` |
@@ -159,11 +178,12 @@ workflow 成功后，至少确认：
 当前最常见的失败点：
 
 1. `CHANGELOG.md` 没有跟版本号同步
-2. `README.md`、兼容矩阵、平台矩阵口径不一致
-3. 本地没跑 `test:e2e`，但 workflow 才暴露最小 bridge 回归失败
-4. `package.json` 版本号已存在于 npm
-5. 兼容声明扩大了，但没有新增实测依据
-6. README 写了新支持线，但没有同步平台矩阵
+2. 发 npm 前没有先创建对应 tag 和 GitHub Release
+3. `README.md`、兼容矩阵、平台矩阵口径不一致
+4. 本地没跑 `test:e2e`，但 workflow 才暴露最小 bridge 回归失败
+5. `package.json` 版本号已存在于 npm
+6. 兼容声明扩大了，但没有新增实测依据
+7. README 写了新支持线，但没有同步平台矩阵
 
 排障时优先看：
 
