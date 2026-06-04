@@ -107,9 +107,23 @@ git status --short
 
 1. 确认目标版本对应的提交已经落在默认发布分支
 2. 创建并推送版本 tag，例如 `v0.1.7`
-3. 基于同名 tag 创建 GitHub `New release`
+3. 运行 `npm run release:github`，基于同名 tag 创建或更新 GitHub `New release`
 4. Release 标题与 tag 保持一致，例如 `v0.1.7`
 5. Release 内容至少覆盖 `CHANGELOG.md` 中该版本的实际变更
+
+当前脚本入口：
+
+```powershell
+npm run release:github
+```
+
+补充说明：
+
+1. 脚本默认读取 `package.json` 当前版本，并使用 `v<version>` 作为 tag / release 名称
+2. Release 正文默认提取 `CHANGELOG.md` 中对应版本段落
+3. 如同名 Release 已存在，脚本会执行更新而不是重复创建
+4. 脚本优先读取 `GITHUB_TOKEN`，否则回退到本机 `git credential-manager`
+5. 需要预演时可执行 `node scripts/create-github-release.mjs --dry-run`
 
 当前硬规则：
 
