@@ -21,7 +21,7 @@
 | OpenClaw 宿主加载验证版本 | `2026.5.22 (a374c3a)` | 当前本机 install/link/load/inspect 记录 |
 | Node.js 引擎要求 | `>=22.16.0` | 当前 `package.json` `engines.node` |
 | Node.js 已验证版本 | `22.x`、`24.x` | 当前 CI 与本地开发记录 |
-| 平台对齐版本 | `clawbridge-platform 0.1.2` | 当前共享联调基线 |
+| 平台对齐版本 | `clawbridge-platform 0.2.x` | 当前共享联调基线 |
 | 协议版本 | `generic-http protocol v1` | 以平台仓库协议文档为准 |
 | 安全规范 | `security spec v1` | 以平台仓库安全文档为准 |
 | 路由规范 | `session routing spec v1` | 以平台仓库路由文档为准 |
@@ -58,7 +58,7 @@
 | OpenClaw Desktop | `2026.6.x` 及更高 | Not yet declared | 后续需单独验证后再声明 |
 | Node.js | `22.x` | Verified in local/dev and CI | 当前推荐主线 |
 | Node.js | `24.x` | Verified in local/dev and CI | 当前已纳入 CI |
-| `clawbridge-platform` | `0.1.2` | Aligned baseline | 当前共享文档与向量对齐版本 |
+| `clawbridge-platform` | `0.2.x` | Aligned baseline | 当前共享文档与向量对齐版本 |
 
 ## 5. 对齐要求
 
@@ -109,7 +109,7 @@
 - 当前完整消息闭环验证版本为 `2026.5.12 (f066dd2)`
 - 当前新增宿主加载验证版本为 `2026.5.22 (a374c3a)`
 - 当前已验证 Node.js `22.x` 与 `24.x`
-- 当前与 `clawbridge-platform 0.1.2` 保持共享协议与向量对齐
+- 当前与 `clawbridge-platform 0.2.x` 保持共享协议与向量对齐
 - 联合 `0.2.0` 当前已补账号级运行时状态摘要，但还未完成 `2026.6.x` 宿主验证
 
 在补完 `2026.6.x` 实测和更正式的 release checklist 之前，不应扩大兼容声明范围。

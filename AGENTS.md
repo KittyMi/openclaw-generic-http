@@ -1,5 +1,8 @@
 # AGENTS.md
 
+> 本文档为 AI agent 提供完整开发规则、工作流和发布流程。
+> 快速参考（项目概述、安装、配置）见 [README.md](README.md)。
+
 ## Project
 
 Repository name: `openclaw-generic-http`

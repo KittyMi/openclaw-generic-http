@@ -24,7 +24,7 @@
 
 | 文档 | 说明 |
 | --- | --- |
-| [04-next-phase-plan.md](./04-next-phase-plan.md) | `0.2.x` 开发路线与任务拆解 |
+| [04-next-phase-plan.md](./04-next-phase-plan.md) | `0.2.x` 早期开发路线（历史参考，活跃规划见 09） |
 | [05-compatibility-matrix.md](./05-compatibility-matrix.md) | 版本兼容声明、对齐基线与升级规则 |
 | [06-release-checklist.md](./06-release-checklist.md) | 发布前检查项 |
 | [07-release-notes-policy.md](./07-release-notes-policy.md) | CHANGELOG 与版本发布说明策略 |

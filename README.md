@@ -77,7 +77,7 @@ webhook ──→ POST /webhooks/inbound/messages ──→ GET /stream/inbound 
 | Node.js | `>=22.16.0` | 引擎要求 |
 | Node.js | `22.x` / `24.x` | CI + 本地验证 |
 | 协议 | `generic-http protocol v1` | 对齐基线 |
-| 平台 | `clawbridge-platform 0.1.2` | 共享联调基线 |
+| 平台 | `clawbridge-platform 0.2.x` | 共享联调基线 |
 
 不兼容范围：
 
@@ -242,11 +242,11 @@ npm run test:e2e
 ## 已知限制
 
 - 正式声明兼容仅覆盖 OpenClaw Desktop `2026.5.x`
-- 当前新增 `2026.5.22 (a374c3a)` 的宿主加载验证，但尚未补完整闭环验证
+- `2026.6.x` 兼容验证尚未完成，暂不扩大支持声明
 - `openclaw channels add --channel ...` 依赖静态 catalog，第三方 channel 不一定出现在交互式枚举中
 - 尚未覆盖多 OpenClaw 版本的兼容矩阵
 - 富媒体仅限于图片和文件附件，不含卡片、按钮等交互组件
-- 多账号并行策略和重连退避仍待进一步优化（见 [下一阶段规划](./docs/04-next-phase-plan.md)）
+- 多账号并行策略和重连退避仍待进一步优化（见 [联合 0.2.0 规划](./docs/09-joint-0.2.0-task-breakdown.md)）
 
 ## 文档索引
 
@@ -256,10 +256,13 @@ npm run test:e2e
 | [常见问题](./docs/02-faq.md) | FAQ 与故障排查 |
 | [本地联调](./docs/03-local-dev.md) | 本地开发与联调环境搭建 |
 | [测试说明](./docs/08-testing.md) | 测试分层、运行方式与新增指南 |
-| [下一阶段规划](./docs/04-next-phase-plan.md) | `0.2.x` 开发路线 |
 | [兼容矩阵](./docs/05-compatibility-matrix.md) | 版本兼容声明与对齐基线 |
 | [发布 Checklist](./docs/06-release-checklist.md) | 发布前检查项 |
 | [版本发布说明策略](./docs/07-release-notes-policy.md) | CHANGELOG 与发布说明规范 |
+| [联合 0.2.0 任务拆解](./docs/09-joint-0.2.0-task-breakdown.md) | 双仓联合 0.2.0 任务规划（**当前活跃**） |
+| [联合 0.2.0 Sprint A 清单](./docs/10-joint-0.2.0-sprint-a-checklist.md) | 联合 0.2.0 Sprint A 执行清单 |
+| [2026.6.x 兼容验证](./docs/11-openclaw-2026.6-compat-validation.md) | OpenClaw 2026.6.x 宿主兼容验证记录 |
+| [早期 0.2.x 规划](./docs/04-next-phase-plan.md) | 早期 0.2.x 开发路线（历史参考） |
 
 上游协作仓库：
 
