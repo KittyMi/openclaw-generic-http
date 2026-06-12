@@ -800,6 +800,7 @@ async function dispatchInboundEventToOpenClaw(params: {
   );
   const ctxPayload = finalizeInboundContextForRuntime(runtime, {
     Body: inboundAgentText,
+    InboundEventKind: "user_request",
     BodyForAgent: inboundAgentText,
     RawBody: inboundAgentText,
     CommandBody: inboundAgentText,
@@ -852,6 +853,9 @@ async function dispatchInboundEventToOpenClaw(params: {
         runtime.reply.dispatchReplyWithBufferedBlockDispatcher,
       delivery: {
         deliver: async (payload: Record<string, unknown>) => {
+          params.ctx.log?.info?.(
+            `[${params.event.accountId}] generic-http outbound reply callback invoked for conversation=${params.event.conversationId} thread=${params.event.threadId ?? "-"}`
+          );
           await deliverOutboundReply({
             cfg: params.ctx.cfg,
             accountId: params.event.accountId,
@@ -861,6 +865,20 @@ async function dispatchInboundEventToOpenClaw(params: {
             threadId: params.event.threadId,
             payload
           });
+          params.ctx.setStatus({
+            accountId: params.event.accountId,
+            connected: true,
+            lastOutboundAt: Date.now(),
+            lastTransportActivityAt: Date.now(),
+            lastError: null,
+            lastErrorCategory: null,
+            lastErrorRetryable: null,
+            lastErrorOperation: null,
+            lastErrorStatus: null
+          });
+          params.ctx.log?.info?.(
+            `[${params.event.accountId}] generic-http outbound reply delivered for conversation=${params.event.conversationId} thread=${params.event.threadId ?? "-"}`
+          );
           return { visibleReplySent: true };
         }
       },
@@ -886,6 +904,9 @@ async function dispatchInboundEventToOpenClaw(params: {
         runtime.reply.dispatchReplyWithBufferedBlockDispatcher,
       delivery: {
         deliver: async (payload: Record<string, unknown>) => {
+          params.ctx.log?.info?.(
+            `[${params.event.accountId}] generic-http outbound reply callback invoked for conversation=${params.event.conversationId} thread=${params.event.threadId ?? "-"}`
+          );
           await deliverOutboundReply({
             cfg: params.ctx.cfg,
             accountId: params.event.accountId,
@@ -895,6 +916,20 @@ async function dispatchInboundEventToOpenClaw(params: {
             threadId: params.event.threadId,
             payload
           });
+          params.ctx.setStatus({
+            accountId: params.event.accountId,
+            connected: true,
+            lastOutboundAt: Date.now(),
+            lastTransportActivityAt: Date.now(),
+            lastError: null,
+            lastErrorCategory: null,
+            lastErrorRetryable: null,
+            lastErrorOperation: null,
+            lastErrorStatus: null
+          });
+          params.ctx.log?.info?.(
+            `[${params.event.accountId}] generic-http outbound reply delivered for conversation=${params.event.conversationId} thread=${params.event.threadId ?? "-"}`
+          );
           return { visibleReplySent: true };
         },
         onError: (error: unknown) => {

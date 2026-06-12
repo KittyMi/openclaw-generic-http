@@ -69,18 +69,18 @@ webhook ──→ POST /webhooks/inbound/messages ──→ GET /stream/inbound 
 
 | Dimension | Baseline | Status |
 | --- | --- | --- |
-| Plugin version | `0.1.6` | Current release |
-| OpenClaw | `2026.5.x` | Supported release line |
-| OpenClaw | `2026.5.12 (f066dd2)` | Verified locally |
+| Plugin version | `0.1.8` | Current release |
+| OpenClaw | `2026.5.x` / `2026.6.x` | Supported release line |
+| OpenClaw | `2026.6.5 (5181e4f)` | Verified closed loop locally |
 | Node.js | `>=22.16.0` | Engine requirement |
 | Node.js | `22.x` / `24.x` | Verified in CI + local |
 | Protocol | `generic-http protocol v1` | Alignment baseline |
-| Platform | `clawbridge-platform 0.1.2` | Shared integration baseline |
+| Platform | `clawbridge-platform 0.2.x` | Shared integration baseline |
 
 Not supported:
 
 - OpenClaw `2026.4.x` and earlier — not verified, no compatibility commitment
-- OpenClaw `2026.6.x` and later — not yet verified, to be evaluated separately
+- OpenClaw `2026.7.x` and later — not yet verified, to be evaluated separately
 
 See [Compatibility Matrix](./docs/05-compatibility-matrix.md) for details.
 
@@ -223,7 +223,7 @@ See [Local Development Guide](./docs/03-local-dev.md) for details.
 
 ## Known Limitations
 
-- Compatibility is formally declared only for OpenClaw Desktop `2026.5.x`
+- Compatibility is formally declared for OpenClaw Desktop `2026.5.x` and `2026.6.x`
 - Real-machine verification completed only on `2026.5.12 (f066dd2)`
 - `openclaw channels add --channel ...` relies on a static catalog; third-party channels may not appear in interactive enumeration
 - Multi-version OpenClaw compatibility matrix not yet covered

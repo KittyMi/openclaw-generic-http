@@ -8,40 +8,40 @@
 
 - 为联合 `0.2.0` 的 Sprint A 提供 `2026.6.x` 兼容结论依据
 
-## 2. 当前状态（2026-06-01）
+## 2. 当前状态（2026-06-11）
 
-当前还没有把 OpenClaw `2026.6.x` 升级为正式声明支持线。
+当前已把 OpenClaw `2026.6.x` 升级为正式声明支持线。
 
 当前已知事实：
 
-1. 插件代码侧没有对 OpenClaw `2026.5.x` 做硬编码分支。
+1. 插件代码侧没有对 OpenClaw `2026.6.x` 做硬编码分支。
 2. 当前 `openclaw` 清单仍沿用标准 channel 注册与 setup/runtime entry 结构。
 3. 当前本仓库已完成 `build + test`，并补了账号级运行时状态摘要。
-4. 当前 README 与兼容矩阵仍只正式声明 OpenClaw `2026.5.x`。
-5. 本机 OpenClaw 为 `2026.5.22 (a374c3a)`，已完成以下宿主加载验证：
-   - `openclaw plugins install --link D:\openclaw-generic-http`
-   - `openclaw plugins inspect openclaw-generic-http --json --runtime`
-   - `openclaw plugins doctor`
-   - `openclaw channels list --all --json`
-6. 当前 CLI 返回 `generic-http` channel 已安装且可发现。
-7. 当前本机 OpenClaw `2026.5.28` 已重新确认 `stream -> outbound -> ack` 闭环恢复正常。
+4. 当前 README 与兼容矩阵已正式声明 OpenClaw `2026.5.x` 与 `2026.6.x`。
+5. 本机 OpenClaw 为 `2026.6.5 (5181e4f)`，已完成以下宿主验证：
+   - `openclaw plugins list --json`
+   - `openclaw channels status --channel generic-http --json`
+   - `openclaw gateway run --verbose`
+   - 基于插件 signer + serializer 的真实 `POST /webhooks/inbound/messages`
+6. 当前 CLI 返回 `generic-http` channel 已加载，账号状态为 `readyForStream=true`、`readyForOutbound=true`。
+7. 当前本机 OpenClaw `2026.6.5` 已重新确认 `webhook -> stream -> outbound -> ack` 真实闭环恢复正常。
 
-因此目前结论仍然是：
+因此当前结论是：
 
-- `2026.6.x`：`pending host smoke verification`
+- `2026.6.x`：`support`
 
 当前最近一次本机宿主验证记录：
 
 | 项目 | 记录 |
 | --- | --- |
-| OpenClaw version | `2026.5.22 (a374c3a)` |
-| Plugin version | `0.1.7` |
-| Install result | `link` 成功 |
-| Runtime inspect | 成功，`status=loaded`，`channelIds=[generic-http]` |
-| Plugin doctor | `No plugin issues detected.` |
-| Channel discover | `generic-http` 显示为 `installed=true, origin=available` |
-| Channel status | gateway 未就绪，未形成账号级状态结果 |
-| Minimal loop result | `2026.5.28` 本机已恢复 `stream -> outbound -> ack` 闭环，但这仍不是 `2026.6.x` 宿主验证 |
+| OpenClaw version | `2026.6.5 (5181e4f)` |
+| Plugin version | `0.1.8` |
+| Install result | 本机已加载本地 `D:\openclaw-generic-http\dist\index.js` |
+| Runtime inspect | `generic-http` channel 可发现，账号配置状态为 `OK` |
+| Plugin doctor | gateway 与 channel status 可正常读取 |
+| Channel discover | `generic-http` 显示为 `enabled` |
+| Channel status | `readyForStream=true`、`readyForOutbound=true`，回发后 `lastOutboundAt` 正常刷新 |
+| Minimal loop result | `2026.6.5` 本机已完成真实 `webhook -> stream -> outbound -> ack` 闭环 |
 
 ## 3. 升级为正式支持前的最小验证项
 
@@ -61,10 +61,11 @@
 5. 失败结论：
    - 若失败，要说明是插件实现问题、宿主 API 兼容问题，还是验证环境问题
 
-当前已知阻塞：
+当前已解决的关键兼容点：
 
-1. 本机 OpenClaw 不是 `2026.6.x`
-2. 现有闭环验证仍基于 `2026.5.x`，不能替代 `2026.6.x` 宿主冒烟结论
+1. generic-http direct conversation 入站上下文现在会补齐标准 `InboundEventKind=user_request`
+2. OpenClaw `2026.6.5` 下宿主已能重新触发正常 source reply 自动回发
+3. generic-http 回发成功后账号状态中的 `lastOutboundAt` 与 `lastTransportActivityAt` 会同步刷新
 
 ## 4. 记录模板
 

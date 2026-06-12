@@ -574,6 +574,9 @@ describe("registerPlugin", () => {
     expect(dispatchedTurns[0]?.replyOptions).toEqual({
       sourceReplyDeliveryMode: "automatic"
     });
+    expect((dispatchedTurns[0]?.ctxPayload as Record<string, unknown>)?.InboundEventKind).toBe(
+      "user_request"
+    );
     expect((dispatchedTurns[0]?.ctxPayload as Record<string, unknown>)?.ConversationLabel).toBe(
       "项目群 / thread-1"
     );

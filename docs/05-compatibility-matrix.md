@@ -11,14 +11,14 @@
 - 再扩展新的 OpenClaw / Node.js / 平台版本支持范围
 - 避免 README、发布说明和平台仓库矩阵出现漂移
 
-## 2. 当前正式兼容基线（2026-06-01）
+## 2. 当前正式兼容基线（2026-06-11）
 
 | 项目 | 当前基线 | 说明 |
 | --- | --- | --- |
-| 插件版本 | `openclaw-generic-http 0.1.7` | 当前 `package.json` 发布号 |
-| OpenClaw 声明支持范围 | `2026.5.x` | 当前 README 正式声明 |
-| OpenClaw 闭环验证版本 | `2026.5.12 (f066dd2)` | 当前已记录的完整消息闭环版本 |
-| OpenClaw 宿主加载验证版本 | `2026.5.22 (a374c3a)` | 当前本机 install/link/load/inspect 记录 |
+| 插件版本 | `openclaw-generic-http 0.1.8` | 当前 `package.json` 发布号 |
+| OpenClaw 声明支持范围 | `2026.5.x`、`2026.6.x` | 当前 README 正式声明 |
+| OpenClaw 闭环验证版本 | `2026.6.5 (5181e4f)` | 当前已记录的完整消息闭环版本 |
+| OpenClaw 宿主加载验证版本 | `2026.6.5 (5181e4f)` | 当前本机实机宿主验证记录 |
 | Node.js 引擎要求 | `>=22.16.0` | 当前 `package.json` `engines.node` |
 | Node.js 已验证版本 | `22.x`、`24.x` | 当前 CI 与本地开发记录 |
 | 平台对齐版本 | `clawbridge-platform 0.2.x` | 当前共享联调基线 |
@@ -42,20 +42,22 @@
 2. 每个账号已能暴露 `readyForProbe / readyForStream / readyForOutbound`
 3. `streamIngressStatus()` 已能输出 `streamState`、`activeRequestInFlight` 与最近错误摘要
 
-当前尚未完成、因此不能提前扩大声明的事项：
+当前已完成、并支撑本次兼容声明升级的事项：
 
-1. OpenClaw `2026.6.x` 宿主冒烟验证
+1. OpenClaw `2026.6.5` 宿主真实 `webhook -> stream -> outbound -> ack` 闭环验证
 2. 基于该验证结果更新 README 与平台版本矩阵
 
 ## 4. 当前兼容矩阵
 
 | 维度 | 版本 / 范围 | 状态 | 说明 |
 | --- | --- | --- | --- |
-| OpenClaw Desktop | `2026.5.12` | Verified closed loop | 当前唯一已记录完整闭环版本 |
-| OpenClaw Desktop | `2026.5.22` | Verified host load | 当前已完成 link / inspect / channel discover |
+| OpenClaw Desktop | `2026.5.12` | Verified closed loop | 历史闭环验证版本 |
+| OpenClaw Desktop | `2026.5.22` | Verified host load | 历史宿主加载验证版本 |
+| OpenClaw Desktop | `2026.6.5` | Verified closed loop | 当前本机完整闭环验证版本 |
 | OpenClaw Desktop | `2026.5.x` | Supported release line | 当前正式声明支持线 |
+| OpenClaw Desktop | `2026.6.x` | Supported release line | 当前正式声明支持线 |
 | OpenClaw Desktop | `2026.4.x` 及更早 | Not supported | 当前未验证，也未承诺兼容 |
-| OpenClaw Desktop | `2026.6.x` 及更高 | Not yet declared | 后续需单独验证后再声明 |
+| OpenClaw Desktop | `2026.7.x` 及更高 | Not yet declared | 后续需单独验证后再声明 |
 | Node.js | `22.x` | Verified in local/dev and CI | 当前推荐主线 |
 | Node.js | `24.x` | Verified in local/dev and CI | 当前已纳入 CI |
 | `clawbridge-platform` | `0.2.x` | Aligned baseline | 当前共享文档与向量对齐版本 |
@@ -102,14 +104,12 @@
 
 当前最稳妥的对外口径是：
 
-- 插件正式发布基线为 `openclaw-generic-http 0.1.7`
-- OpenClaw `2026.5.28` 的 modern runtime 入站回复派发兼容问题已在 `0.1.7` 修复
-- 当前本机已重新确认 `stream -> outbound -> ack` 闭环恢复
-- 当前声明支持 OpenClaw Desktop `2026.5.x`
-- 当前完整消息闭环验证版本为 `2026.5.12 (f066dd2)`
-- 当前新增宿主加载验证版本为 `2026.5.22 (a374c3a)`
+- 插件正式发布基线为 `openclaw-generic-http 0.1.8`
+- OpenClaw `2026.6.5` 下 direct conversation 的 inbound context 兼容问题已在 `0.1.8` 修复
+- 当前本机已重新确认 `webhook -> stream -> outbound -> ack` 闭环恢复
+- 当前声明支持 OpenClaw Desktop `2026.5.x` 与 `2026.6.x`
+- 当前完整消息闭环验证版本为 `2026.6.5 (5181e4f)`
+- 当前历史宿主加载验证版本为 `2026.5.22 (a374c3a)`
 - 当前已验证 Node.js `22.x` 与 `24.x`
 - 当前与 `clawbridge-platform 0.2.x` 保持共享协议与向量对齐
-- 联合 `0.2.0` 当前已补账号级运行时状态摘要，但还未完成 `2026.6.x` 宿主验证
-
-在补完 `2026.6.x` 实测和更正式的 release checklist 之前，不应扩大兼容声明范围。
+- 联合 `0.2.0` 当前已补账号级运行时状态摘要，并已完成 `2026.6.x` 宿主验证

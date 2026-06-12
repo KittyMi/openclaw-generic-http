@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-06-11
+
+### OpenClaw `2026.6.5` 闭环兼容修复
+
+- 修复 generic-http 入站消息在 OpenClaw `2026.6.5` 下缺少标准 `InboundEventKind` 上下文，导致模型已生成回复但宿主不触发正常 source reply 回发的问题
+- 保持 modern runtime `runtime.inbound.dispatchReply(...)` 主线不变，补齐 direct conversation 的标准 inbound context 组装
+- generic-http 出站回发成功后现在会刷新账号状态中的 `lastOutboundAt` 与 `lastTransportActivityAt`
+- 补充 OpenClaw `2026.6.5 (5181e4f)` 的本机真实 `webhook -> stream -> outbound -> ack` 闭环验证记录
+- 发布线升级到 `0.1.8`
+
 ## [0.1.7] - 2026-06-04
 
 ### OpenClaw `2026.5.28` 入站回复兼容修复

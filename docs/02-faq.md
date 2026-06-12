@@ -2,7 +2,7 @@
 
 ## 1. 当前发布状态是什么？
 
-`@kittymi/openclaw-generic-http` 已发布 `0.1.7` 正式版本，具备以下能力：
+`@kittymi/openclaw-generic-http` 已发布 `0.1.8` 正式版本，具备以下能力：
 
 - `webhook + stream` ingress 运行时
 - `health / probe / resolve / capabilities`
@@ -34,10 +34,10 @@
 
 | 范围 | 状态 |
 | --- | --- |
-| `2026.5.x` | 声明支持线 |
-| `2026.5.12 (f066dd2)` | 实机验证 |
+| `2026.5.x` / `2026.6.x` | 声明支持线 |
+| `2026.6.5 (5181e4f)` | 实机闭环验证 |
 | `2026.4.x` 及更早 | 不承诺兼容 |
-| `2026.6.x` 及更高 | 后续单独评估 |
+| `2026.7.x` 及更高 | 后续单独评估 |
 
 详见 [兼容矩阵](./05-compatibility-matrix.md)。
 
@@ -74,7 +74,7 @@
 
 ## 10. 当前最主要的限制是什么？
 
-- 正式兼容声明仅覆盖 OpenClaw Desktop `2026.5.x`
+- 正式兼容声明当前覆盖 OpenClaw Desktop `2026.5.x` 与 `2026.6.x`
 - `openclaw channels add --channel ...` 的交互式枚举不一定包含第三方 channel
 - 富媒体限于图片和文件附件，不含卡片、按钮等交互组件
 - 多账号并行策略和重连退避仍待优化
