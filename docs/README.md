@@ -11,6 +11,7 @@
 | 文档 | 说明 |
 | --- | --- |
 | [01-installation-guide.md](./01-installation-guide.md) | 安装前提、安装方式、最小配置与首次联调 |
+| [12-platform-integration-guide.md](./12-platform-integration-guide.md) | 平台与插件端对接说明，收口接口、签名、入参出参与 Java/Python 示例 |
 | [02-faq.md](./02-faq.md) | 常见问题与故障排查 |
 
 ## 开发者文档

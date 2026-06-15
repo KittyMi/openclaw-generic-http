@@ -210,6 +210,9 @@ npm install -g @kittymi/openclaw-generic-http
 | `/stream/acks` | POST | 入站事件确认 | 插件 |
 | `/outbound/messages` | POST | 出站消息投递 | 插件 |
 
+完整的接口入参出参、签名规则和 `Java` / `Python` 示例见
+[平台对接文档](./docs/12-platform-integration-guide.md)。
+
 ## 本地开发
 
 ```bash
@@ -245,6 +248,7 @@ npm run test:e2e
 | 文档 | 说明 |
 | --- | --- |
 | [安装与配置](./docs/01-installation-guide.md) | 安装方式、最小配置、首次联调 |
+| [平台对接说明](./docs/12-platform-integration-guide.md) | 平台与插件的接口清单、签名规则、Java/Python 示例 |
 | [常见问题](./docs/02-faq.md) | FAQ 与故障排查 |
 | [本地联调](./docs/03-local-dev.md) | 本地开发与联调环境搭建 |
 | [测试说明](./docs/08-testing.md) | 测试分层、运行方式与新增指南 |
