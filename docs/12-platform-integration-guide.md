@@ -162,7 +162,7 @@ SHA256(rawBody)
 
 ## 7. 平台暴露给插件/第三方的协议接口
 
-## 7.1 `GET /health`
+### 7.1 `GET /health`
 
 用途：
 
@@ -180,7 +180,7 @@ SHA256(rawBody)
 }
 ```
 
-## 7.2 `GET /capabilities`
+### 7.2 `GET /capabilities`
 
 用途：
 
@@ -202,7 +202,7 @@ SHA256(rawBody)
 }
 ```
 
-## 7.3 `POST /probe`
+### 7.3 `POST /probe`
 
 用途：
 
@@ -236,7 +236,7 @@ SHA256(rawBody)
 }
 ```
 
-## 7.4 `POST /resolve`
+### 7.4 `POST /resolve`
 
 用途：
 
@@ -272,7 +272,7 @@ SHA256(rawBody)
 - `kind` 取值：`conversation` / `sender`
 - 无命中时返回空数组，不要伪造占位 ID
 
-## 7.5 `POST /webhooks/inbound/messages`
+### 7.5 `POST /webhooks/inbound/messages`
 
 用途：
 
@@ -324,7 +324,7 @@ SHA256(rawBody)
 }
 ```
 
-## 7.6 `POST /webhooks/inbound/events`
+### 7.6 `POST /webhooks/inbound/events`
 
 用途：
 
@@ -334,7 +334,7 @@ SHA256(rawBody)
 
 - 与 `POST /webhooks/inbound/messages` 相同
 
-## 7.7 `GET /stream/inbound`
+### 7.7 `GET /stream/inbound`
 
 用途：
 
@@ -369,7 +369,7 @@ data: {"eventId":"evt_001","eventType":"inbound-message","accountId":"default", 
 - 平台侧事件在 ack 前可能被重复拉到
 - 插件必须把消费完成后的事件主动 ack
 
-## 7.8 `POST /stream/acks`
+### 7.8 `POST /stream/acks`
 
 用途：
 
@@ -400,7 +400,7 @@ data: {"eventId":"evt_001","eventType":"inbound-message","accountId":"default", 
 }
 ```
 
-## 7.9 `POST /outbound/messages`
+### 7.9 `POST /outbound/messages`
 
 用途：
 
@@ -466,7 +466,7 @@ data: {"eventId":"evt_001","eventType":"inbound-message","accountId":"default", 
 
 ## 9. Java 示例
 
-## 9.1 Java 发送入站消息到平台
+### 9.1 Java 发送入站消息到平台
 
 ```java
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -593,7 +593,7 @@ public class GenericHttpInboundDemo {
 }
 ```
 
-## 9.2 Java Spring Boot 接收插件回调的出站消息
+### 9.2 Java Spring Boot 接收插件回调的出站消息
 
 ```java
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -689,7 +689,7 @@ public class OutboundMessageController {
 
 ## 10. Python 示例
 
-## 10.1 Python 发送入站消息到平台
+### 10.1 Python 发送入站消息到平台
 
 ```python
 import hashlib
@@ -769,7 +769,7 @@ print(response.status_code)
 print(response.text)
 ```
 
-## 10.2 Python FastAPI 接收 `POST /outbound/messages`
+### 10.2 Python FastAPI 接收 `POST /outbound/messages`
 
 ```python
 import hashlib

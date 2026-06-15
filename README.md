@@ -84,7 +84,7 @@ webhook ──→ POST /webhooks/inbound/messages ──→ GET /stream/inbound 
 - OpenClaw `2026.4.x` 及更早版本 — 未验证，不承诺兼容
 - OpenClaw `2026.7.x` 及更高版本 — 未验证，后续单独评估
 
-联合 `0.2.0` 当前仍基于 `protocol v1` 推进，插件侧当前已补完
+联合 `0.2.0` 当前仍基于 `protocol v1` 推进。插件侧当前已补完
 OpenClaw `2026.6.5` 的宿主真实闭环验证，并将正式支持线扩大到 `2026.6.x`。
 
 当前 `0.1.8` 已补齐 OpenClaw `2026.6.5` 下 direct conversation 的标准 inbound

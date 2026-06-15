@@ -50,6 +50,8 @@ An OpenClaw `generic-http` channel plugin. Connects third-party systems to OpenC
 | Auto-reconnect | Supported | Backoff retry on stream disconnect |
 | Structured errors | Supported | Plugin pull/dispatch/ack errors include `errorCode` |
 | Config diagnostics | Supported | `readyForStream` / `readyForOutbound` status exposed |
+| Account status summaries | Supported | `accountStatuses` output with `readyForProbe` / `readyForStream` / `readyForOutbound` and `issues` |
+| Stream diagnostics | Supported | `streamState`, `activeRequestInFlight`, and recent error summary |
 
 ## Architecture
 
@@ -224,11 +226,11 @@ See [Local Development Guide](./docs/03-local-dev.md) for details.
 ## Known Limitations
 
 - Compatibility is formally declared for OpenClaw Desktop `2026.5.x` and `2026.6.x`
-- Real-machine verification completed only on `2026.5.12 (f066dd2)`
+- Real-machine verification completed on `2026.6.5 (5181e4f)`
 - `openclaw channels add --channel ...` relies on a static catalog; third-party channels may not appear in interactive enumeration
 - Multi-version OpenClaw compatibility matrix not yet covered
 - Rich media is limited to image and file attachments — no cards, buttons, or interactive components
-- Multi-account parallelism and reconnect backoff still to be optimized (see [Next Phase Plan](./docs/04-next-phase-plan.md))
+- Multi-account parallelism and reconnect backoff still to be optimized (see [Joint 0.2.0 Task Breakdown](./docs/09-joint-0.2.0-task-breakdown.md))
 
 ## Documentation
 
@@ -238,10 +240,14 @@ See [Local Development Guide](./docs/03-local-dev.md) for details.
 | [FAQ](./docs/02-faq.md) | Frequently asked questions and troubleshooting |
 | [Local Development](./docs/03-local-dev.md) | Local dev environment and integration setup |
 | [Testing](./docs/08-testing.md) | Test layers, how to run and add tests |
-| [Next Phase Plan](./docs/04-next-phase-plan.md) | `0.2.x` roadmap |
 | [Compatibility Matrix](./docs/05-compatibility-matrix.md) | Version compatibility and alignment baseline |
 | [Release Checklist](./docs/06-release-checklist.md) | Pre-release verification items |
 | [Release Notes Policy](./docs/07-release-notes-policy.md) | CHANGELOG and release note conventions |
+| [Platform Integration Guide](./docs/12-platform-integration-guide.md) | Platform ↔ plugin coordination guide |
+| [Joint 0.2.0 Task Breakdown](./docs/09-joint-0.2.0-task-breakdown.md) | Active joint 0.2.0 planning |
+| [Joint 0.2.0 Sprint A Checklist](./docs/10-joint-0.2.0-sprint-a-checklist.md) | Current sprint execution checklist |
+| [2026.6.x Compat Validation](./docs/11-openclaw-2026.6-compat-validation.md) | OpenClaw 2026.6.x verification record |
+| [Next Phase Plan](./docs/04-next-phase-plan.md) | Historical `0.2.x` roadmap (superseded by joint planning) |
 
 Upstream collaboration:
 

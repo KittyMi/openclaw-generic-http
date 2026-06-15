@@ -52,7 +52,7 @@ Sprint A 当前不直接开发：
 
 - [ ] 更新 `docs/05-compatibility-matrix.md`
 - [ ] 明确插件版本、OpenClaw 支持范围、Node.js 范围、平台对齐版本
-- [ ] 明确是否继续维持 `clawbridge-platform 0.1.2` 基线，或升级到新的联合 `0.2.0` 目标口径
+- [ ] 确认当前已对齐 `clawbridge-platform 0.2.x` 基线，并与联合 `0.2.0` 目标口径保持一致
 
 完成标准：
 

@@ -6,7 +6,7 @@
 
 - Node.js >= 22.16.0
 - 已安装 OpenClaw（用于加载插件）
-- 本地或可访问的 bridge/relay 实例（可使用平台仓库的 [local-e2e.ps1](https://github.com/KittyMi/openclaw-http-bridge) 启动）
+- 本地或可访问的 bridge/relay 实例（可使用平台仓库的 `scripts/local-e2e.ps1` 启动，见 [平台仓库](https://github.com/KittyMi/openclaw-http-bridge)）
 
 ## 2. 源码构建
 
@@ -134,9 +134,9 @@ npm run test:e2e
 - 确认 `defaultAccount` 与入站消息的 `accountId` 一致
 - 检查 bridge 日志中的 stream 连接状态
 
-**本地 bridge 快速启动（需平台仓库）：**
+**本地 bridge 快速启动（需平台仓库，路径请按实际环境调整）：**
 
 ```powershell
-cd D:\openclaw-http-bridge
+cd <openclaw-http-bridge>
 powershell -ExecutionPolicy Bypass -File .\scripts\local-e2e.ps1
 ```

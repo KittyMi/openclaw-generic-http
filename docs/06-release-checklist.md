@@ -106,9 +106,9 @@ git status --short
 在触发 npm 发布前，必须先完成版本标记和 GitHub Release：
 
 1. 确认目标版本对应的提交已经落在默认发布分支
-2. 创建并推送版本 tag，例如 `v0.1.7`
+2. 创建并推送版本 tag，例如 `v0.1.8`
 3. 运行 `npm run release:github`，基于同名 tag 创建或更新 GitHub `New release`
-4. Release 标题与 tag 保持一致，例如 `v0.1.7`
+4. Release 标题与 tag 保持一致，例如 `v0.1.8`
 5. Release 内容至少覆盖 `CHANGELOG.md` 中该版本的实际变更
 
 当前脚本入口：
@@ -166,7 +166,7 @@ workflow 成功后，至少确认：
 | --- | --- |
 | package name | `@kittymi/openclaw-generic-http` |
 | package version | 本次发布号 |
-| git tag | 例如 `v0.1.7` |
+| git tag | 例如 `v0.1.8` |
 | GitHub Release | Release 链接 |
 | npm tag | `latest` 或实际使用标签 |
 | workflow run | GitHub Actions run 链接或编号 |

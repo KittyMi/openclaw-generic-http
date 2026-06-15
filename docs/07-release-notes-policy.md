@@ -139,8 +139,8 @@
 在当前阶段，最稳妥的版本发布说明口径是：
 
 1. 插件已具备 `0.1.x` 预览发布条件
-2. 当前正式支持 OpenClaw Desktop `2026.5.x`
+2. 当前正式支持 OpenClaw Desktop `2026.5.x` 和 `2026.6.x`
 3. 当前已验证 Node.js `22.x` 和 `24.x`
 4. 当前 npm 发布通过手动触发 GitHub Actions workflow 执行
-5. 在补完更广泛兼容验证前，不扩大支持声明
+5. `2026.6.x` 兼容验证已完成（见 `docs/11-openclaw-2026.6-compat-validation.md`）
 6. 联合 `0.2.0` 当前仍基于 `protocol v1`，升级主题不等于自动扩大宿主支持线

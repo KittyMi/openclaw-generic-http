@@ -83,7 +83,7 @@ It is not responsible for:
   `D:\openclaw-http-bridge\docs\`.
 - Preserve field names and semantics once introduced.
 - Signature behavior must remain aligned with
-  `docs/06-security-spec.md`.
+  `D:\openclaw-http-bridge\docs\06-security-spec.md`.
 - Never implement signing based on reserialized JSON if raw body bytes are
   required.
 

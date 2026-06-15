@@ -28,12 +28,13 @@ Before submitting implementation changes, please confirm:
 3. the plugin still stays within transport, mapping, security, and host integration scope
 4. behavior changes are covered by tests or docs
 
-For protocol-facing changes, also check alignment with:
+For protocol-facing changes, also check alignment with the platform repository
+(`https://github.com/KittyMi/openclaw-http-bridge`):
 
-- `openclaw-http-bridge/docs/02-protocol-v1.md`
-- `openclaw-http-bridge/docs/06-security-spec.md`
-- `openclaw-http-bridge/docs/08-session-routing-spec.md`
-- shared vectors under `openclaw-http-bridge/docs/test-vectors/`
+- `docs/02-protocol-v1.md`
+- `docs/06-security-spec.md`
+- `docs/08-session-routing-spec.md`
+- shared vectors under `docs/test-vectors/`
 
 ## Development expectations
 
@@ -42,8 +43,8 @@ Please keep changes easy to review:
 - prefer small pull requests
 - do not casually rename public config keys, manifest fields, or payload fields
 - do not silently drift from the platform repository docs
-- update README when install, config, compatibility, or runtime behavior changes
-- update changelog for user-visible release work
+- update README.md and README-en.md when install, config, compatibility, or runtime behavior changes
+- update CHANGELOG.md for user-visible release work
 
 Major design changes should start with an issue or discussion.
 
