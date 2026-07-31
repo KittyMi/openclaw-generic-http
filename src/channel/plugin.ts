@@ -196,7 +196,7 @@ export function createGenericHttpChannelPlugin(
   );
   const streamIngressCircuitBreakerThreshold = Math.max(
     1,
-    options.streamIngressCircuitBreakerThreshold ?? 5
+    options.streamIngressCircuitBreakerThreshold ?? 3
   );
   const streamIngressCircuitBreakerCooldownMillis = Math.max(
     streamIngressPollIntervalMillis,
@@ -401,13 +401,18 @@ export function createGenericHttpChannelPlugin(
         return;
       }
 
-      const ackedEventIds: string[] = [];
+      const dispatchResults = await Promise.allSettled(
+        pulled.items.map((item) => options.onInboundStreamMessage?.(item) ?? Promise.resolve())
+      );
 
-      for (const item of pulled.items) {
-        try {
-          await options.onInboundStreamMessage?.(item);
+      const ackedEventIds: string[] = [];
+      for (let i = 0; i < pulled.items.length; i++) {
+        const item = pulled.items[i]!;
+        const result = dispatchResults[i];
+        if (result?.status === "fulfilled") {
           ackedEventIds.push(item.eventId);
-        } catch (error) {
+        } else {
+          const error = result?.status === "rejected" ? result.reason : undefined;
           await options.onInboundStreamError?.({
             phase: "dispatch",
             accountId,

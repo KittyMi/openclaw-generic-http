@@ -95,7 +95,7 @@ export const genericHttpHostConfigSchema: GenericHttpHostConfigSchema = {
             minimum: 0,
             title: "Max Retries",
             description: "Maximum retry count for retryable outbound HTTP failures.",
-            default: 0
+            default: 2
           }
         },
         required: ["baseUrl"],

@@ -22,7 +22,7 @@ export function normalizeAccountConfig(
       account.connectTimeoutMillis ?? DEFAULT_CONNECT_TIMEOUT_MILLIS,
     readTimeoutMillis:
       account.readTimeoutMillis ?? DEFAULT_READ_TIMEOUT_MILLIS,
-    maxRetries: account.maxRetries ?? 0
+    maxRetries: account.maxRetries ?? 2
   };
 }
 
