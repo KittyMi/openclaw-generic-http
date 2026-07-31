@@ -1,5 +1,7 @@
-import { randomUUID } from "node:crypto";
-import { dirname, resolve as resolvePath } from "node:path";
+﻿import { randomUUID } from "node:crypto";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve as resolvePath } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import {
@@ -577,6 +579,9 @@ function describeInboundAttachment(attachment: AttachmentDto, index: number): st
   if (sizeBytes !== undefined) {
     segments.push(`${sizeBytes} bytes`);
   }
+  if (attachment.url) {
+    segments.push(`URL: ${attachment.url}`);
+  }
 
   return segments.join(" | ");
 }
@@ -750,6 +755,45 @@ async function deliverOutboundReply(params: {
   });
 }
 
+
+/**
+ * 将 contentBase64 附件写入临时文件并返回带 url 的附件列表。
+ * OpenClaw 运行时无法直接处理 base64 内容，需要落盘为文件路径。
+ */
+async function resolveContentBase64Attachments(
+  attachments: import("./protocol/dto.js").AttachmentDto[]
+): Promise<import("./protocol/dto.js").AttachmentDto[]> {
+  if (!attachments || attachments.length === 0) {
+    return attachments;
+  }
+
+  const resolved: import("./protocol/dto.js").AttachmentDto[] = [];
+  for (const attachment of attachments) {
+    if (attachment.url) {
+      resolved.push(attachment);
+      continue;
+    }
+    if (!attachment.contentBase64) {
+      resolved.push(attachment);
+      continue;
+    }
+
+    const buffer = Buffer.from(attachment.contentBase64, "base64");
+    const tmpDir = join(tmpdir(), "openclaw-generic-http-attachments");
+    mkdirSync(tmpDir, { recursive: true });
+    const safeName = (attachment.name ?? `attachment-${randomUUID()}`).replace(/[^a-zA-Z0-9._-]/g, "_");
+    const filePath = join(tmpDir, `${Date.now()}-${randomUUID()}-${safeName}`);
+    writeFileSync(filePath, buffer);
+    const fileUrl = pathToFileURL(filePath).href;
+
+    resolved.push({
+      ...attachment,
+      url: fileUrl
+    });
+  }
+
+  return resolved;
+}
 async function dispatchInboundEventToOpenClaw(params: {
   ctx: OpenClawGatewayContextLike;
   event: NormalizedInboundMessageEvent;
@@ -794,9 +838,10 @@ async function dispatchInboundEventToOpenClaw(params: {
       ? undefined
       : normalizeDisplayText(params.event.conversationTitle) ?? params.event.conversationId;
   const inboundFrom = chatType === "direct" ? senderName : conversationLabel;
+  const resolvedAttachments = await resolveContentBase64Attachments(params.event.attachments);
   const inboundAgentText = buildInboundAgentText(
     params.event.text,
-    params.event.attachments
+    resolvedAttachments
   );
   const ctxPayload = finalizeInboundContextForRuntime(runtime, {
     Body: inboundAgentText,
@@ -822,8 +867,8 @@ async function dispatchInboundEventToOpenClaw(params: {
     MessageSidFull: params.event.messageId,
     ReplyToId: params.event.replyToMessageId ?? undefined,
     Timestamp: parseOccurredAtMillis(params.event.occurredAt),
-    MessageAttachments: params.event.attachments,
-    AttachmentCount: params.event.attachments.length,
+    MessageAttachments: resolvedAttachments,
+    AttachmentCount: resolvedAttachments.length,
     OriginatingChannel: CHANNEL_ID,
     OriginatingTo: targetRef,
     CommandAuthorized: false,
@@ -834,7 +879,7 @@ async function dispatchInboundEventToOpenClaw(params: {
         eventId: params.event.eventId,
         idempotencyKey: params.event.idempotencyKey,
         metadata: params.event.metadata,
-        attachments: params.event.attachments
+        attachments: resolvedAttachments
       }
     ]
   });
